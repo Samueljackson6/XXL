@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GRID_COLS, GRID_ROWS, TILE_SIZE } from '../utils/config';
+import { GRID_COLS, GRID_ROWS, TILE_SIZE, TOWER_TYPES, ECONOMY_CONFIG } from '../utils/config';
 import { Grid } from '../systems/Grid';
 import { WaveManager } from '../systems/WaveManager';
 import { Economy } from '../systems/Economy';
@@ -9,7 +9,6 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { HUD } from '../ui/HUD';
 import { TowerSelectBar } from '../ui/TowerSelectBar';
-import { TOWER_TYPES } from '../utils/config';
 
 export default class GameScene extends Phaser.Scene {
   private grid!: Grid;
@@ -47,7 +46,6 @@ export default class GameScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.towerSelectBar = new TowerSelectBar(this);
 
-    // Rendering order: grid → path → towers → enemies → projectiles → preview → HUD → tower select
     this.drawGrid();
     this.drawPathOverlay();
     this.setupInput();
@@ -141,9 +139,7 @@ export default class GameScene extends Phaser.Scene {
       if (canPlace) {
         const config = TOWER_TYPES[this.selectedTowerType];
         this.previewGraphics.lineStyle(1, 0xffffff, 0.2);
-        this.previewGraphics.strokeCircle(
-          x + TILE_SIZE / 2, y + TILE_SIZE / 2, config.range,
-        );
+        this.previewGraphics.strokeCircle(x + TILE_SIZE / 2, y + TILE_SIZE / 2, config.range);
       }
     });
   }
@@ -170,6 +166,9 @@ export default class GameScene extends Phaser.Scene {
 
   private onWaveComplete = (): void => {
     this.waveSurvived = this.waveManager.currentWave;
+    this.economy.earn(
+      this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase,
+    );
     this.towerSelectBar.updateStartWaveVisibility(true);
 
     if (this.waveManager.currentWave >= this.waveManager.totalWaves) {
@@ -242,11 +241,17 @@ export default class GameScene extends Phaser.Scene {
 
       if (closestEnemy) {
         tower.fire(time);
+        const typeConfig = TOWER_TYPES[tower.towerType];
         const proj = new Projectile(
-          this, tower.x, tower.y,
-          closestEnemy.x, closestEnemy.y,
+          this,
+          tower.x,
+          tower.y,
+          closestEnemy,
           tower.damage,
+          typeConfig.projectileSpeed,
           tower.towerType,
+          typeConfig.aoeRadius,
+          typeConfig.slowEffect,
         );
         this.projectiles.push(proj);
       }
@@ -258,23 +263,57 @@ export default class GameScene extends Phaser.Scene {
       const stillMoving = proj.update(dt);
 
       if (!stillMoving) {
-        for (const enemy of this.enemies) {
-          if (!enemy.alive) continue;
-          const dx = enemy.x - proj.projX;
-          const dy = enemy.y - proj.projY;
-          if (Math.sqrt(dx * dx + dy * dy) < 18) {
-            const dead = enemy.takeDamage(proj.damage);
+        // AOE: iterate all alive enemies within radius
+        if (proj.aoeRadius > 0) {
+          for (const enemy of this.enemies) {
+            if (!enemy.alive) continue;
+            const dx = enemy.x - proj.projX;
+            const dy = enemy.y - proj.projY;
+            if (Math.sqrt(dx * dx + dy * dy) < proj.aoeRadius) {
+              const dead = enemy.takeDamage(proj.damage);
+              if (dead) {
+                enemy.alive = false;
+                this.waveManager.onEnemyRemoved(enemy);
+                const reward = this.economy.killReward(enemy.reward, this.waveManager.currentWave);
+                this.economy.earn(reward);
+                this.totalKills++;
+              }
+            }
+          }
+        } else {
+          // Single target: find closest enemy to impact point
+          let closestEnemy: Enemy | null = null;
+          let closestDist = 18;
+
+          for (const enemy of this.enemies) {
+            if (!enemy.alive) continue;
+            const dx = enemy.x - proj.projX;
+            const dy = enemy.y - proj.projY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestEnemy = enemy;
+            }
+          }
+
+          if (closestEnemy) {
+            const dead = closestEnemy.takeDamage(proj.damage);
             if (dead) {
-              enemy.alive = false;
-              this.economy.earn(enemy.reward);
+              closestEnemy.alive = false;
+              this.waveManager.onEnemyRemoved(closestEnemy);
+              const reward = this.economy.killReward(
+                closestEnemy.reward,
+                this.waveManager.currentWave,
+              );
+              this.economy.earn(reward);
               this.totalKills++;
             }
-            if (proj.projType === 'frost') {
-              enemy.applySlow(1500, 0.5);
+            if (proj.slowEffect) {
+              closestEnemy.applySlow(proj.slowEffect.duration, proj.slowEffect.factor);
             }
-            break;
           }
         }
+
         proj.destroy();
         this.projectiles.splice(i, 1);
       }

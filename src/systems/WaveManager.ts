@@ -1,9 +1,14 @@
+import * as Phaser from 'phaser';
 import { Enemy, type EnemyType } from '../entities/Enemy';
-import { ENEMY_TYPES } from '../utils/config';
+import { ENEMY_TYPES, WAVE_CONFIG } from '../utils/config';
+
+interface IGameScene {
+  registerEnemy(enemy: Enemy): void;
+}
 
 export class WaveManager {
   currentWave: number = 0;
-  totalWaves: number = 30;
+  totalWaves: number = WAVE_CONFIG.totalWaves;
   enemiesRemaining: number = 0;
   activeEnemies: Enemy[] = [];
   waveActive: boolean = false;
@@ -12,10 +17,10 @@ export class WaveManager {
   waveSpawnTimer: number = 0;
   waveEnemiesToSpawn: number = 0;
 
-  private gameScene: any;
+  private gameScene: Phaser.Scene & IGameScene;
   private onWaveComplete: () => void;
 
-  constructor(gameScene: any, onWaveComplete: () => void) {
+  constructor(gameScene: Phaser.Scene & IGameScene, onWaveComplete: () => void) {
     this.gameScene = gameScene;
     this.onWaveComplete = onWaveComplete;
   }
@@ -27,14 +32,14 @@ export class WaveManager {
     this.betweenWaves = false;
 
     const waveMultiplier = 1 + (this.currentWave - 1) * 0.25;
-    const baseCount = 5 + this.currentWave * 2;
+    const baseCount = WAVE_CONFIG.baseCount + this.currentWave * WAVE_CONFIG.countPerWave;
     this.waveEnemiesToSpawn = Math.floor(baseCount * waveMultiplier);
     this.enemiesRemaining = this.waveEnemiesToSpawn;
     this.waveSpawnTimer = 0;
   }
 
   getSpawnInterval(): number {
-    const base = 1000;
+    const base = WAVE_CONFIG.spawnInterval;
     return Math.max(200, base - this.currentWave * 15);
   }
 
@@ -43,11 +48,11 @@ export class WaveManager {
     const rand = Math.random();
 
     if (wave >= 20) {
-      if (rand < 0.3) return 'tank';
+      if (rand < 0.35) return 'tank';
       if (rand < 0.6) return 'fast';
       return 'basic';
     } else if (wave >= 10) {
-      if (rand < 0.25) return 'tank';
+      if (rand < 0.2) return 'tank';
       if (rand < 0.5) return 'fast';
       return 'basic';
     } else if (wave >= 5) {
@@ -58,7 +63,8 @@ export class WaveManager {
   }
 
   getScaledHp(type: EnemyType): number {
-    return Math.floor(ENEMY_TYPES[type].hp * (1 + (this.currentWave - 1) * 0.3));
+    const hpScale = 1 + (this.currentWave - 1) * 0.12;
+    return Math.floor(ENEMY_TYPES[type].hp * hpScale);
   }
 
   getEnemySpeed(type: EnemyType): number {
@@ -93,6 +99,20 @@ export class WaveManager {
     }
   }
 
+  onEnemyRemoved(enemy: Enemy): void {
+    this.removeEnemy(enemy);
+    this.checkWaveComplete();
+  }
+
+  private checkWaveComplete(): void {
+    if (this.waveActive && this.enemiesRemaining === 0 && this.activeEnemies.length === 0) {
+      this.waveActive = false;
+      this.betweenWaves = true;
+      this.intermissionTimer = WAVE_CONFIG.intermissionTime * 1000;
+      this.onWaveComplete();
+    }
+  }
+
   update(dt: number): void {
     if (this.waveActive && this.enemiesRemaining > 0) {
       this.waveSpawnTimer -= dt * 1000;
@@ -104,13 +124,6 @@ export class WaveManager {
       }
     }
 
-    if (this.waveActive && this.enemiesRemaining === 0 && this.activeEnemies.length === 0) {
-      this.waveActive = false;
-      this.betweenWaves = true;
-      this.intermissionTimer = 5000;
-      this.onWaveComplete();
-    }
-
     if (this.betweenWaves) {
       this.intermissionTimer -= dt * 1000;
     }
@@ -118,7 +131,7 @@ export class WaveManager {
 
   getIntermissionProgress(): number {
     if (!this.betweenWaves) return 1;
-    return 1 - this.intermissionTimer / 5000;
+    return 1 - this.intermissionTimer / (WAVE_CONFIG.intermissionTime * 1000);
   }
 
   shouldShowStartButton(): boolean {

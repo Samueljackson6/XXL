@@ -17,20 +17,6 @@ export default class BootScene extends Phaser.Scene {
   private createTextures(): void {
     const gfx = this.add.graphics();
 
-    // Grid tile
-    gfx.fillStyle(0x2e7d32);
-    gfx.fillRect(0, 0, 64, 64);
-    gfx.lineStyle(1, 0x388e3c);
-    gfx.strokeRect(0, 0, 64, 64);
-    gfx.generateTexture('tile', 64, 64);
-    gfx.clear();
-
-    // Path tile
-    gfx.fillStyle(0x5d4037);
-    gfx.fillRect(0, 0, 64, 64);
-    gfx.generateTexture('path', 64, 64);
-    gfx.clear();
-
     // Tower base (arrow)
     gfx.fillStyle(0x4fc3f7);
     gfx.fillCircle(16, 16, 14);

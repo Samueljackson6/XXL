@@ -53,7 +53,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   updateHpBar(): void {
-    const ratio = this.hp / this.maxHp;
+    const ratio = Math.max(0, this.hp / this.maxHp);
     this.hpBarFill.setScale(ratio, 1);
     this.hpBarFill.setX(-12 * (1 - ratio));
     if (ratio < 0.3) {
