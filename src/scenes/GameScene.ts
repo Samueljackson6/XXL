@@ -16,6 +16,9 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { HUD } from '../ui/HUD';
 import { TowerSelectBar } from '../ui/TowerSelectBar';
+import { TowerInfoPanel } from '../ui/TowerInfoPanel';
+import { FloatingText } from '../fx/FloatingText';
+import { AudioManager } from '../audio/AudioManager';
 import type { WaveState } from '../systems/CombatState';
 import { WAVE_STATE } from '../systems/CombatState';
 
@@ -26,8 +29,11 @@ export default class GameScene extends Phaser.Scene {
   private economy!: Economy;
   private hud!: HUD;
   private towerSelectBar!: TowerSelectBar;
+  private towerInfoPanel!: TowerInfoPanel;
+  private audioManager!: AudioManager;
 
   private towers: Tower[] = [];
+  private selectedTower: Tower | null = null;
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private selectedTowerType: TowerType | null = null;
@@ -56,6 +62,26 @@ export default class GameScene extends Phaser.Scene {
     this.waveManager = new WaveManager(this, this.onWaveComplete);
     this.hud = new HUD(this);
     this.towerSelectBar = new TowerSelectBar(this, this.state);
+    this.towerInfoPanel = new TowerInfoPanel(this);
+    this.audioManager = new AudioManager(this);
+
+    this.towerInfoPanel.onUpgrade = () => {
+      if (this.selectedTower && this.economy.spend(this.selectedTower.getUpgradeCost())) {
+        this.selectedTower.upgrade();
+        this.towerInfoPanel.refresh();
+        this.audioManager.play('towerUpgrade');
+      }
+    };
+    this.towerInfoPanel.onSell = () => {
+      if (this.selectedTower) {
+        this.economy.earn(this.selectedTower.getSellValue());
+        this.towers = this.towers.filter((t) => t !== this.selectedTower);
+        this.selectedTower.destroy();
+        this.towerInfoPanel.hide();
+        this.selectedTower = null;
+        this.audioManager.play('towerSell');
+      }
+    };
 
     this.drawGrid();
     this.drawPathOverlay();
@@ -123,7 +149,34 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.gameOver) return;
+
+      const clickedTower = this.getTowerAt(pointer.x, pointer.y);
+      if (clickedTower) {
+        if (this.selectedTower) {
+          this.selectedTower.showRange(false);
+        }
+        this.selectedTower = clickedTower;
+        this.selectedTower.showRange(true);
+        this.towerInfoPanel.show({
+          scene: this,
+          x: clickedTower.x,
+          y: clickedTower.y,
+          towerType: clickedTower.towerType,
+          level: clickedTower.level,
+          damage: clickedTower.damage,
+          range: clickedTower.range,
+        });
+        this.selectedTowerType = null;
+        this.towerSelectBar.setSelectedType(null);
+        return;
+      }
+
       if (this.state !== WAVE_STATE.PREPARE) return;
+      if (this.selectedTower) {
+        this.selectedTower.showRange(false);
+        this.selectedTower = null;
+      }
+      this.towerInfoPanel.hide();
       if (!this.selectedTowerType) return;
 
       const col = this.grid.getGridCol(pointer.x);
@@ -141,6 +194,7 @@ export default class GameScene extends Phaser.Scene {
       const towerY = row * TILE_SIZE + TILE_SIZE / 2;
       const tower = new Tower(this, towerX, towerY, this.selectedTowerType);
       this.towers.push(tower);
+      this.audioManager.play('towerPlace');
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -172,13 +226,24 @@ export default class GameScene extends Phaser.Scene {
 
   private setupTowerSelect(): void {
     this.towerSelectBar.onSelect = (type: TowerType) => {
+      if (this.selectedTower) {
+        this.selectedTower.showRange(false);
+        this.selectedTower = null;
+      }
+      this.towerInfoPanel.hide();
       if (this.state !== WAVE_STATE.PREPARE) return;
       this.selectedTowerType = this.selectedTowerType === type ? null : type;
       this.towerSelectBar.setSelectedType(this.selectedTowerType);
     };
 
     this.towerSelectBar.onStartWave = () => {
+      if (this.selectedTower) {
+        this.selectedTower.showRange(false);
+        this.selectedTower = null;
+      }
+      this.towerInfoPanel.hide();
       if (this.state !== WAVE_STATE.PREPARE) return;
+      this.audioManager.play('waveStart');
       this.startFightingPhase();
     };
   }
@@ -195,9 +260,11 @@ export default class GameScene extends Phaser.Scene {
     this.economy.earn(
       this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase,
     );
+    this.audioManager.play('waveComplete');
 
     if (this.waveManager.currentWave >= this.waveManager.totalWaves) {
       this.state = WAVE_STATE.VICTORY;
+      this.audioManager.play('gameOver');
       this.time.delayedCall(1000, () => this.endGame());
     } else {
       this.state = WAVE_STATE.INTERMISSION;
@@ -207,6 +274,18 @@ export default class GameScene extends Phaser.Scene {
       });
     }
   };
+
+  private getTowerAt(x: number, y: number): Tower | null {
+    for (let i = this.towers.length - 1; i >= 0; i--) {
+      const t = this.towers[i];
+      const dx = x - t.x;
+      const dy = y - t.y;
+      if (Math.abs(dx) <= TILE_SIZE / 2 && Math.abs(dy) <= TILE_SIZE / 2) {
+        return t;
+      }
+    }
+    return null;
+  }
 
   private endGame(): void {
     if (this.gameOver) return;
@@ -325,6 +404,8 @@ export default class GameScene extends Phaser.Scene {
                 const reward = this.economy.killReward(enemy.reward, this.waveManager.currentWave);
                 this.economy.earn(reward);
                 this.totalKills++;
+                new FloatingText(this, proj.projX, proj.projY - 10, `+${reward}`);
+                this.audioManager.play('enemyDeath');
               }
             }
           }
@@ -354,6 +435,8 @@ export default class GameScene extends Phaser.Scene {
               );
               this.economy.earn(reward);
               this.totalKills++;
+              new FloatingText(this, closestEnemy.x, closestEnemy.y - 10, `+${reward}`);
+              this.audioManager.play('enemyDeath');
             }
             if (proj.slowEffect) {
               closestEnemy.applySlow(proj.slowEffect.duration, proj.slowEffect.factor);
