@@ -260,6 +260,7 @@ export default class GameScene extends Phaser.Scene {
     this.economy.earn(
       this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase,
     );
+    this.economy.save();
     this.audioManager.play('waveComplete');
 
     if (this.waveManager.currentWave >= this.waveManager.totalWaves) {

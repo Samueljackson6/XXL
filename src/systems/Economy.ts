@@ -39,4 +39,30 @@ export class Economy {
   sellValue(baseCost: number, level: number): number {
     return Math.floor(baseCost * ECONOMY_CONFIG.sellRatio * level);
   }
+
+  save(): void {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wx = (globalThis as any).wx;
+      if (wx && wx.setStorageSync) {
+        wx.setStorageSync('xxl_economy', { gold: this.gold, lives: this.lives });
+      }
+    } catch {
+      // Storage not available
+    }
+  }
+
+  static load(): { gold: number; lives: number } | null {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wx = (globalThis as any).wx;
+      if (wx && wx.getStorageSync) {
+        const data = wx.getStorageSync('xxl_economy');
+        if (data) return data as { gold: number; lives: number };
+      }
+    } catch {
+      // Storage not available
+    }
+    return null;
+  }
 }
