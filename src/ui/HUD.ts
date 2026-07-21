@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH } from '../utils/config';
+import { GAME_WIDTH, HUD_HEIGHT } from '../utils/config';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -17,35 +17,39 @@ export class HUD {
     this.container = this.scene.add.container(0, 0);
 
     const panel = this.scene.add.graphics();
-    panel.fillStyle(0x000000, 0.6);
-    panel.fillRect(0, 0, GAME_WIDTH, 44);
+    panel.fillStyle(0x000000, 0.8);
+    panel.fillRect(0, 0, GAME_WIDTH, HUD_HEIGHT);
     this.container.add(panel);
 
-    this.livesText = this.scene.add.text(10, 12, '', {
+    this.livesText = this.scene.add.text(10, 14, '', {
       fontSize: '16px',
       color: '#ff4444',
-      fontFamily: 'Arial',
+      fontFamily: 'Arial, sans-serif',
     });
     this.container.add(this.livesText);
 
-    this.goldText = this.scene.add.text(GAME_WIDTH / 2, 12, '', {
-      fontSize: '16px',
-      color: '#ffd700',
-      fontFamily: 'Arial',
-    }).setOrigin(0.5, 0);
+    this.goldText = this.scene.add
+      .text(200, 14, '', {
+        fontSize: '16px',
+        color: '#ffd700',
+        fontFamily: 'Arial, sans-serif',
+      })
+      .setOrigin(0.5, 0);
     this.container.add(this.goldText);
 
-    this.waveText = this.scene.add.text(GAME_WIDTH - 10, 12, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-    }).setOrigin(1, 0);
+    this.waveText = this.scene.add
+      .text(390, 14, '', {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+      })
+      .setOrigin(1, 0);
     this.container.add(this.waveText);
   }
 
   update(gold: number, lives: number, wave: number, totalWaves: number): void {
-    this.goldText.setText(`💰 ${gold}`);
-    this.livesText.setText(`❤️ ${lives}`);
-    this.waveText.setText(`Wave ${wave}/${totalWaves}`);
+    this.goldText.setText(`GOLD ${gold}`);
+    this.livesText.setText(`HP ${lives}`);
+    this.waveText.setText(`WAVE ${wave}/${totalWaves}`);
   }
 }

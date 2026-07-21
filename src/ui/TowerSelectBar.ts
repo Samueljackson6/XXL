@@ -1,65 +1,166 @@
 import * as Phaser from 'phaser';
-import { GAME_HEIGHT, TOWER_TYPES } from '../utils/config';
+import { GAME_WIDTH, GAME_HEIGHT, TOWER_TYPES } from '../utils/config';
 import { type TowerType } from '../entities/Tower';
+import { WAVE_STATE } from '../systems/CombatState';
+import type { WaveState } from '../systems/CombatState';
 
 export class TowerSelectBar {
   private scene: Phaser.Scene;
+  private state: WaveState;
 
   onSelect: ((type: TowerType) => void) | null = null;
   onStartWave: (() => void) | null = null;
 
-  private buttonEls: HTMLElement[] = [];
-  private startBtnEl!: HTMLElement;
-  private rootEl!: HTMLElement;
+  private container!: Phaser.GameObjects.Container;
+  private buttons: {
+    bg: Phaser.GameObjects.Rectangle;
+    nameText: Phaser.GameObjects.Text;
+    costText: Phaser.GameObjects.Text;
+  }[] = [];
+  private startButton!: Phaser.GameObjects.Container;
+  private startBg!: Phaser.GameObjects.Rectangle;
+  private startText!: Phaser.GameObjects.Text;
+  private timerText!: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, state: WaveState) {
     this.scene = scene;
+    this.state = state;
     this.create();
   }
 
   private create(): void {
-    const GAME_WIDTH = 400;
-    const gameCanvas = this.scene.game.canvas;
+    this.container = this.scene.add.container(0, GAME_HEIGHT - 60);
 
-    this.rootEl = document.createElement('div');
-    this.rootEl.style.cssText = `position:fixed;left:0;bottom:0;width:100%;height:70px;display:flex;align-items:center;justify-content:center;gap:12px;pointer-events:auto;z-index:100;background:rgba(0,0,0,0.7);`;
-    document.body.appendChild(this.rootEl);
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x000000, 0.7);
+    bg.fillRect(0, 0, GAME_WIDTH, 60);
+    this.container.add(bg);
 
     const types: TowerType[] = ['arrow', 'cannon', 'frost'];
+    let buttonX = 20;
+
     for (const type of types) {
       const config = TOWER_TYPES[type];
-      const btn = document.createElement('div');
-      btn.style.cssText = `display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:54px;background:rgba(51,51,51,0.9);border:2px solid #${config.color.toString(16).padStart(6,'0')};border-radius:10px;cursor:pointer;`;
-      btn.innerHTML = `<span style="color:#fff;font-size:14px;font-family:Arial,sans-serif">${config.name}</span><span style="color:#ffd700;font-size:12px;font-family:Arial,sans-serif">${config.cost}💰</span>`;
-      btn.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+      const buttonContainer = this.scene.add.container(buttonX, 10);
+
+      const bgRect = this.scene.add.rectangle(0, 0, 80, 40, 0x333333, 0.9);
+      bgRect.setStrokeStyle(2, config.color, 0.8);
+      bgRect.setInteractive({ useHandCursor: true });
+      bgRect.on('pointerdown', () => {
         if (this.onSelect) this.onSelect(type);
       });
-      this.rootEl.appendChild(btn);
-      this.buttonEls.push(btn);
+      buttonContainer.add(bgRect);
+
+      const nameText = this.scene.add
+        .text(0, -6, config.name, {
+          fontSize: '12px',
+          color: '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+        })
+        .setOrigin(0.5, 0.5);
+      buttonContainer.add(nameText);
+
+      const costText = this.scene.add
+        .text(0, 10, `${config.cost}`, {
+          fontSize: '11px',
+          color: '#ffd700',
+          fontFamily: 'Arial, sans-serif',
+        })
+        .setOrigin(0.5, 0.5);
+      buttonContainer.add(costText);
+
+      this.container.add(buttonContainer);
+      this.buttons.push({ bg: bgRect, nameText, costText });
+      buttonX += 100;
     }
 
-    this.startBtnEl = document.createElement('div');
-    this.startBtnEl.style.cssText = `width:70px;height:34px;background:rgba(76,175,80,0.9);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-family:Arial,sans-serif;cursor:pointer;margin-left:16px;`;
-    this.startBtnEl.textContent = '开始';
-    this.startBtnEl.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
+    const startX = GAME_WIDTH - 100;
+    this.startButton = this.scene.add.container(startX, 10);
+
+    this.startBg = this.scene.add.rectangle(0, 0, 80, 40, 0x4caf50, 0.9);
+    this.startBg.setInteractive({ useHandCursor: true });
+    this.startBg.on('pointerdown', () => {
       if (this.onStartWave) this.onStartWave();
     });
-    this.rootEl.appendChild(this.startBtnEl);
+    this.startButton.add(this.startBg);
 
-    this.updateStartWaveVisibility(false);
+    this.startText = this.scene.add
+      .text(0, 0, '开始', {
+        fontSize: '14px',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+      })
+      .setOrigin(0.5, 0.5);
+    this.startButton.add(this.startText);
+
+    this.container.add(this.startButton);
+
+    this.timerText = this.scene.add
+      .text(GAME_WIDTH / 2, 20, '', {
+        fontSize: '14px',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+      })
+      .setOrigin(0.5, 0.5);
+    this.container.add(this.timerText);
+
+    this.updateState(this.state);
   }
 
-  updateStartWaveVisibility(show: boolean): void {
-    if (this.startBtnEl) this.startBtnEl.style.display = show ? '' : 'none';
+  updateState(state: WaveState): void {
+    this.state = state;
+
+    switch (state) {
+      case WAVE_STATE.PREPARE:
+        this.startBg.setVisible(true);
+        this.startText.setVisible(true);
+        this.startText.setText('跳过');
+        this.timerText.setVisible(true);
+        break;
+      case WAVE_STATE.FIGHTING:
+        this.startBg.setVisible(false);
+        this.startText.setVisible(false);
+        this.timerText.setVisible(false);
+        break;
+      case WAVE_STATE.INTERMISSION:
+        this.startBg.setVisible(true);
+        this.startText.setVisible(true);
+        this.startText.setText('下一波');
+        this.timerText.setVisible(false);
+        break;
+      default:
+        this.startBg.setVisible(true);
+        this.startText.setVisible(true);
+        this.startText.setText('开始');
+        this.timerText.setVisible(false);
+    }
   }
 
-  destroy(): void {
-    if (this.rootEl && this.rootEl.parentElement) {
-      this.rootEl.parentElement.removeChild(this.rootEl);
+  updateTimer(remaining: number): void {
+    if (this.state === WAVE_STATE.PREPARE) {
+      this.timerText.setText(`准备: ${Math.ceil(remaining)}s`);
+    }
+  }
+
+  updateAffordability(canAfford: Record<TowerType, boolean>): void {
+    for (let i = 0; i < this.buttons.length; i++) {
+      const type = ['arrow', 'cannon', 'frost'][i] as TowerType;
+      const button = this.buttons[i];
+      const alpha = canAfford[type] ? 0.9 : 0.4;
+      button.bg.setAlpha(alpha);
+    }
+  }
+
+  setSelectedType(type: TowerType | null): void {
+    for (let i = 0; i < this.buttons.length; i++) {
+      const btnType = ['arrow', 'cannon', 'frost'][i] as TowerType;
+      const button = this.buttons[i];
+      if (btnType === type) {
+        button.bg.setStrokeStyle(3, 0xffffff, 1);
+      } else {
+        const config = TOWER_TYPES[btnType];
+        button.bg.setStrokeStyle(2, config.color, 0.8);
+      }
     }
   }
 }

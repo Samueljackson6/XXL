@@ -1,5 +1,12 @@
 import * as Phaser from 'phaser';
-import { GRID_COLS, GRID_ROWS, TILE_SIZE, TOWER_TYPES, ECONOMY_CONFIG } from '../utils/config';
+import {
+  GRID_COLS,
+  GRID_ROWS,
+  TILE_SIZE,
+  TOWER_TYPES,
+  ECONOMY_CONFIG,
+  WAVE_CONFIG,
+} from '../utils/config';
 import { Grid } from '../systems/Grid';
 import { WaveManager } from '../systems/WaveManager';
 import { Economy } from '../systems/Economy';
@@ -9,6 +16,8 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { HUD } from '../ui/HUD';
 import { TowerSelectBar } from '../ui/TowerSelectBar';
+import type { WaveState } from '../systems/CombatState';
+import { WAVE_STATE } from '../systems/CombatState';
 
 export default class GameScene extends Phaser.Scene {
   private grid!: Grid;
@@ -31,6 +40,8 @@ export default class GameScene extends Phaser.Scene {
   private waveSurvived: number = 0;
   private totalKills: number = 0;
   private gameOver: boolean = false;
+  private state: WaveState = WAVE_STATE.IDLE;
+  private prepareTimer: number = 0;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -44,7 +55,7 @@ export default class GameScene extends Phaser.Scene {
     this.economy = new Economy();
     this.waveManager = new WaveManager(this, this.onWaveComplete);
     this.hud = new HUD(this);
-    this.towerSelectBar = new TowerSelectBar(this);
+    this.towerSelectBar = new TowerSelectBar(this, this.state);
 
     this.drawGrid();
     this.drawPathOverlay();
@@ -54,6 +65,20 @@ export default class GameScene extends Phaser.Scene {
     this.waveSurvived = 0;
     this.totalKills = 0;
     this.gameOver = false;
+
+    this.startPreparePhase();
+  }
+
+  private startPreparePhase(): void {
+    this.state = WAVE_STATE.PREPARE;
+    this.prepareTimer = WAVE_CONFIG.prepareTime * 1000;
+    this.towerSelectBar.updateState(this.state);
+  }
+
+  private startFightingPhase(): void {
+    this.state = WAVE_STATE.FIGHTING;
+    this.towerSelectBar.updateState(this.state);
+    this.waveManager.startNextWave();
   }
 
   private drawGrid(): void {
@@ -98,6 +123,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.gameOver) return;
+      if (this.state !== WAVE_STATE.PREPARE) return;
       if (!this.selectedTowerType) return;
 
       const col = this.grid.getGridCol(pointer.x);
@@ -118,7 +144,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.selectedTowerType || this.gameOver) {
+      if (!this.selectedTowerType || this.gameOver || this.state !== WAVE_STATE.PREPARE) {
         this.previewGraphics.setVisible(false);
         return;
       }
@@ -146,15 +172,15 @@ export default class GameScene extends Phaser.Scene {
 
   private setupTowerSelect(): void {
     this.towerSelectBar.onSelect = (type: TowerType) => {
+      if (this.state !== WAVE_STATE.PREPARE) return;
       this.selectedTowerType = this.selectedTowerType === type ? null : type;
+      this.towerSelectBar.setSelectedType(this.selectedTowerType);
     };
 
     this.towerSelectBar.onStartWave = () => {
-      this.towerSelectBar.updateStartWaveVisibility(false);
-      this.waveManager.startNextWave();
+      if (this.state !== WAVE_STATE.PREPARE) return;
+      this.startFightingPhase();
     };
-
-    this.towerSelectBar.updateStartWaveVisibility(true);
   }
 
   private onEnemyReachEnd = (): void => {
@@ -169,10 +195,16 @@ export default class GameScene extends Phaser.Scene {
     this.economy.earn(
       this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase,
     );
-    this.towerSelectBar.updateStartWaveVisibility(true);
 
     if (this.waveManager.currentWave >= this.waveManager.totalWaves) {
+      this.state = WAVE_STATE.VICTORY;
       this.time.delayedCall(1000, () => this.endGame());
+    } else {
+      this.state = WAVE_STATE.INTERMISSION;
+      this.towerSelectBar.updateState(this.state);
+      this.time.delayedCall(WAVE_CONFIG.intermissionTime * 1000, () => {
+        this.startPreparePhase();
+      });
     }
   };
 
@@ -196,6 +228,23 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
 
     const dt = delta / 1000;
+
+    // State machine updates
+    if (this.state === WAVE_STATE.PREPARE) {
+      this.prepareTimer -= delta * 1000;
+      this.towerSelectBar.updateTimer(this.prepareTimer);
+      if (this.prepareTimer <= 0) {
+        this.startFightingPhase();
+      }
+    }
+
+    // Update affordability
+    const affordMap: Record<TowerType, boolean> = {
+      arrow: this.economy.canAfford(TOWER_TYPES.arrow.cost),
+      cannon: this.economy.canAfford(TOWER_TYPES.cannon.cost),
+      frost: this.economy.canAfford(TOWER_TYPES.frost.cost),
+    };
+    this.towerSelectBar.updateAffordability(affordMap);
 
     // Update wave manager
     this.waveManager.update(dt);
@@ -263,7 +312,6 @@ export default class GameScene extends Phaser.Scene {
       const stillMoving = proj.update(dt);
 
       if (!stillMoving) {
-        // AOE: iterate all alive enemies within radius
         if (proj.aoeRadius > 0) {
           for (const enemy of this.enemies) {
             if (!enemy.alive) continue;
@@ -281,7 +329,6 @@ export default class GameScene extends Phaser.Scene {
             }
           }
         } else {
-          // Single target: find closest enemy to impact point
           let closestEnemy: Enemy | null = null;
           let closestDist = 18;
 

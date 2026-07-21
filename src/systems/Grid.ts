@@ -12,7 +12,13 @@ export class Grid {
   private markPathCells(): void {
     for (const p of PATH_POINTS) {
       this.pathCells.add(`${p.x},${p.y}`);
-      for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const [dx, dy] of [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
         const nx = p.x + dx;
         const ny = p.y + dy;
         if (nx >= 0 && nx < GRID_COLS && ny >= 0 && ny < GRID_ROWS) {

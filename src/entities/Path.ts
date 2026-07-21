@@ -4,7 +4,7 @@ export class Path {
   private points: { x: number; y: number }[];
 
   constructor() {
-    this.points = PATH_POINTS.map(p => ({
+    this.points = PATH_POINTS.map((p) => ({
       x: p.x * TILE_SIZE + TILE_SIZE / 2,
       y: p.y * TILE_SIZE + TILE_SIZE / 2,
     }));

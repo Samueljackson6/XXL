@@ -4,7 +4,9 @@ import MenuScene from './scenes/MenuScene';
 import GameScene from './scenes/GameScene';
 import GameOverScene from './scenes/GameOverScene';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 if (!(window as any).__phaserGame) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).__phaserGame = true;
 
   const config: Phaser.Types.Core.GameConfig = {

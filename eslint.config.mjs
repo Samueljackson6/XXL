@@ -8,6 +8,7 @@ export default [
   {
     languageOptions: {
       globals: {
+        window: 'readonly',
         document: 'readonly',
         HTMLElement: 'readonly',
       },
