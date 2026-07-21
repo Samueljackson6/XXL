@@ -42,12 +42,22 @@ src/
   fx/           — 特效（浮动文字、对象池）
 ```
 
+## 测试
+
+- **单元测试**：`pnpm test` 运行 Vitest（tests/unit/），覆盖 Grid/Path/Economy/WaveManager 等纯逻辑模块
+- **E2E 测试**：`pnpm exec playwright test` 运行 Playwright（tests/e2e/），覆盖浏览器端交互流程
+
+## 已知问题
+
+- 显示层级乱（敌人/面板/塔渲染顺序需用 depth 管理）
+- 部分游戏逻辑仍有问题待验证
+
 ## 实施计划
 
 按 4 个 Phase 递进：
-- Phase 1：修复 3 个阻断 Bug + 配置对齐 + 投射物追踪 + 炮塔 AOE
-- Phase 2：纯 Phaser UI 重构 + 状态机 + 经济奖励 + HUD 重写
-- Phase 3：塔信息面板 + 浮动文字 + 对象池 + 音频
-- Phase 4：微信构建 + 触摸优化 + 存档 + 性能
+- Phase 1：修复 3 个阻断 Bug + 配置对齐 + 投射物追踪 + 炮塔 AOE ✅
+- Phase 2：纯 Phaser UI 重构 + 状态机 + 经济奖励 + HUD 重写 ✅
+- Phase 3：塔信息面板 + 浮动文字 + 对象池 + 音频 ✅
+- Phase 4：微信构建 + 触摸优化 + 存档 + 性能 🔄（进行中）
 
 详见 `docs/game-design-doc-v1.2.md`（最终设计规范）。
