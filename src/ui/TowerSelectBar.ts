@@ -16,6 +16,8 @@ export class TowerSelectBar {
     bg: Phaser.GameObjects.Rectangle;
     nameText: Phaser.GameObjects.Text;
     costText: Phaser.GameObjects.Text;
+    highlight?: Phaser.GameObjects.Graphics;
+    tween?: Phaser.Tweens.Tween;
   }[] = [];
   private startButton!: Phaser.GameObjects.Container;
   private startBg!: Phaser.GameObjects.Rectangle;
@@ -70,7 +72,10 @@ export class TowerSelectBar {
       buttonContainer.add(costText);
 
       this.container.add(buttonContainer);
-      this.buttons.push({ bg: bgRect, nameText, costText });
+      const highlight = this.scene.add.graphics();
+      highlight.setVisible(false);
+      buttonContainer.add(highlight);
+      this.buttons.push({ bg: bgRect, nameText, costText, highlight });
       buttonX += 100;
     }
 
@@ -96,8 +101,8 @@ export class TowerSelectBar {
     this.container.add(this.startButton);
 
     this.timerText = this.scene.add
-      .text(GAME_WIDTH / 2, 20, '', {
-        fontSize: '14px',
+      .text(GAME_WIDTH / 2, 52, '', {
+        fontSize: '12px',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
       })
@@ -138,7 +143,7 @@ export class TowerSelectBar {
 
   updateTimer(remaining: number): void {
     if (this.state === WAVE_STATE.PREPARE) {
-      this.timerText.setText(`准备: ${Math.ceil(remaining)}s`);
+      this.timerText.setText(`准备: ${Math.ceil(remaining / 1000)}s`);
     }
   }
 
@@ -155,11 +160,33 @@ export class TowerSelectBar {
     for (let i = 0; i < this.buttons.length; i++) {
       const btnType = ['arrow', 'cannon', 'frost'][i] as TowerType;
       const button = this.buttons[i];
+
       if (btnType === type) {
         button.bg.setStrokeStyle(3, 0xffffff, 1);
+        button.highlight!.setVisible(true);
+        button.highlight!.clear();
+        button.highlight!.lineStyle(2, TOWER_TYPES[btnType].color, 0.8);
+        button.highlight!.strokeRect(-44, -22, 88, 44);
+
+        if (!button.tween) {
+          const g = button.highlight!;
+          button.tween = this.scene.tweens.add({
+            targets: g,
+            alpha: 0.3,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+        }
       } else {
-        const config = TOWER_TYPES[btnType];
-        button.bg.setStrokeStyle(2, config.color, 0.8);
+        button.bg.setStrokeStyle(2, TOWER_TYPES[btnType].color, 0.8);
+        button.highlight!.setVisible(false);
+        if (button.tween) {
+          button.tween.stop();
+          button.tween = undefined;
+        }
+        button.highlight!.setAlpha(1);
       }
     }
   }

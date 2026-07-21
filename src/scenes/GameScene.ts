@@ -3,6 +3,8 @@ import {
   GRID_COLS,
   GRID_ROWS,
   TILE_SIZE,
+  GAME_WIDTH,
+  GAME_HEIGHT,
   TOWER_TYPES,
   ECONOMY_CONFIG,
   WAVE_CONFIG,
@@ -63,7 +65,7 @@ export default class GameScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.towerSelectBar = new TowerSelectBar(this, this.state);
     this.towerInfoPanel = new TowerInfoPanel(this);
-    this.audioManager = new AudioManager(this);
+    this.audioManager = new AudioManager();
 
     this.towerInfoPanel.onUpgrade = () => {
       if (this.selectedTower && this.economy.spend(this.selectedTower.getUpgradeCost())) {
@@ -152,6 +154,12 @@ export default class GameScene extends Phaser.Scene {
 
       const clickedTower = this.getTowerAt(pointer.x, pointer.y);
       if (clickedTower) {
+        if (this.selectedTower === clickedTower) {
+          this.selectedTower.showRange(false);
+          this.selectedTower = null;
+          this.towerInfoPanel.hide();
+          return;
+        }
         if (this.selectedTower) {
           this.selectedTower.showRange(false);
         }
@@ -171,12 +179,13 @@ export default class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (this.state !== WAVE_STATE.PREPARE) return;
       if (this.selectedTower) {
         this.selectedTower.showRange(false);
         this.selectedTower = null;
       }
       this.towerInfoPanel.hide();
+
+      if (this.state !== WAVE_STATE.PREPARE) return;
       if (!this.selectedTowerType) return;
 
       const col = this.grid.getGridCol(pointer.x);
@@ -257,11 +266,19 @@ export default class GameScene extends Phaser.Scene {
 
   private onWaveComplete = (): void => {
     this.waveSurvived = this.waveManager.currentWave;
-    this.economy.earn(
-      this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase,
-    );
+    const bonus =
+      this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase;
+    this.economy.earn(bonus);
     this.economy.save();
     this.audioManager.play('waveComplete');
+    new FloatingText(
+      this,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 - 80,
+      `WAVE ${this.waveManager.currentWave} CLEAR`,
+      '#ffffff',
+      'large',
+    );
 
     if (this.waveManager.currentWave >= this.waveManager.totalWaves) {
       this.state = WAVE_STATE.VICTORY;
@@ -311,7 +328,7 @@ export default class GameScene extends Phaser.Scene {
 
     // State machine updates
     if (this.state === WAVE_STATE.PREPARE) {
-      this.prepareTimer -= delta * 1000;
+      this.prepareTimer -= delta;
       this.towerSelectBar.updateTimer(this.prepareTimer);
       if (this.prepareTimer <= 0) {
         this.startFightingPhase();

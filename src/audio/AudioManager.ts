@@ -1,5 +1,3 @@
-import * as Phaser from 'phaser';
-
 export type AudioEvents = {
   towerPlace: () => void;
   towerSell: () => void;
@@ -11,15 +9,10 @@ export type AudioEvents = {
 };
 
 export class AudioManager {
-  private scene: Phaser.Scene;
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
 
-  constructor(scene: Phaser.Scene) {
-    this.scene = scene;
-  }
-
-  private getContext(): AudioContext {
+  private getContext(): AudioContext | null {
     if (!this.ctx) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AnyWindow = globalThis as any;
@@ -41,12 +34,13 @@ export class AudioManager {
   private playTone(
     freq: number,
     duration: number,
-    type: OscillatorType = 'square',
+    type: 'square' | 'sawtooth' | 'triangle' | 'sine' = 'square',
     volume = 0.08,
   ): void {
     if (this.muted) return;
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;
