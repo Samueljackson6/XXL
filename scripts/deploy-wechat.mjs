@@ -12,8 +12,9 @@
 
 import { execSync, spawn, spawnSync } from 'child_process';
 import { createConnection } from 'net';
-import { existsSync, statSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { existsSync, statSync, readdirSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
+import { resolve, dirname, join } from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
@@ -44,7 +45,7 @@ const DEVTOOLS_CLI = 'D:/DevCache/微信web开发者工具/cli.bat';
 const APPID = 'wx10c928d3274d2360';
 const AUTO_PORT = 5000;
 const BUILD_TIMEOUT_MS = 10 * 60 * 1000;
-const DEVTOOLS_TIMEOUT_MS = 30 * 1000;
+const DEVTOOLS_TIMEOUT_MS = 150 * 1000;
 const INIT_WAIT_MS = 5000; // 运行时初始化 + console 采集窗口（原为 3s，扩展至 5s 提高捕获率）
 
 async function main() {
@@ -200,8 +201,15 @@ function patchAppId(realOutput) {
   }
 
   if (json.compileType === 'game') {
+    // 关键修复：小游戏项目绝不能保留 miniprogramRoot —— 那是「小程序」专属字段。
+    // DevTools 的 getProjectInfo 会因该字段判定 project.config.json 非法，稳定报 code 19。
+    // Cocos 即便对小游戏也会写出 miniprogramRoot，必须在此显式删除。
+    if (json.miniprogramRoot !== undefined) {
+      delete json.miniprogramRoot;
+      changed = true;
+    }
     if (!json.gameRoot) {
-      json.gameRoot = json.miniprogramRoot || './';
+      json.gameRoot = './';
       changed = true;
     }
     if (json.libVersion) {
@@ -227,7 +235,8 @@ function patchAppId(realOutput) {
 
   // 始终以合法 UTF-8 重写（即便没变化也重写，抹掉 GBK 残迹）
   writeFileSync(pconfig, JSON.stringify(json, null, 2) + '\n', 'utf-8');
-  console.log(`  ✅ 已固化 project.config.json（appid=${json.appid}, gameRoot=${json.gameRoot || '(none)'}, description="${newDesc}"）`);
+  const miniNote = (json.compileType === 'game') ? '，已剥离 miniprogramRoot' : '';
+  console.log(`  ✅ 已固化 project.config.json（appid=${json.appid}, gameRoot=${json.gameRoot || '(none)'}, description="${newDesc}"${miniNote}）`);
 }
 
 async function launchDevTools() {
@@ -239,38 +248,100 @@ async function launchDevTools() {
     process.exit(1);
   }
 
-  // 关闭已有 DevTools 实例
-  console.log('  关闭已有 DevTools 实例...');
-  try { spawnSync('taskkill', ['/F', '/IM', 'wechatdevtools.exe'], { stdio: 'ignore' }); } catch {}
-  await sleep(3000);
-
   // 启动 DevTools（产物根目录为 build/wechatgame/wechatgame/，内含 game.js / project.config.json）
   const buildDir = resolve(ROOT, 'build', 'wechatgame', 'wechatgame');
-  console.log(`  启动 DevTools（自动化端口 ${AUTO_PORT}）...`);
 
-  const cliProc = spawn(cliPath, [
-    'auto',
-    '--project', buildDir,
-    '--auto-port', String(AUTO_PORT),
-    '--trust-project'
-  ], { shell: true, stdio: 'pipe' });
+  // 多轮重试：微信开发者工具 CLI 的 `auto` 会“挂到”已运行的陈旧 IDE 实例（而非启动全新实例），
+  // 而陈旧实例往往持有无效/旧的项目配置 → 稳定报 code 19、且不会在 5000 端口开放自动化。
+  // 因此：端口未就绪（或检测到陈旧 IDE 端口）时，精准清理该实例 + 整棵树，再重新拉起，
+  // 直到 CLI 启动一个全新、干净的 IDE 并开放自动化端口为止。
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    console.log(`\n  ── 启动 DevTools 尝试 ${attempt}/${MAX_ATTEMPTS} ──`);
 
-  let cliOutput = '';
-  cliProc.stdout.on('data', d => { cliOutput += d.toString(); });
-  cliProc.stderr.on('data', d => { cliOutput += d.toString(); });
+    // 彻底清场：杀掉整棵进程树（含守护进程），轮询至干净
+    for (let i = 0; i < 4; i++) {
+      killDevTools();
+      await sleep(1500);
+      if (!devToolsRunning()) break;
+    }
+    if (devToolsRunning()) {
+      console.warn('  ⚠️  仍有 DevTools 进程残留，CLI 可能挂到陈旧实例（code 19 风险）');
+    }
 
-  // 等待端口就绪
-  console.log(`  等待端口 ${AUTO_PORT}...`);
-  const portReady = await waitForPort(AUTO_PORT, 30000);
-  if (!portReady) {
-    console.error(`  ❌ 端口 ${AUTO_PORT} 未就绪`);
-    console.log('  CLI 输出:', cliOutput.trim().slice(0, 500));
-    process.exit(1);
+    // 清理陈旧的 IDE 端口文件（.ide）：CLI 用它判断“是否有 IDE 已在运行”。
+    // 若上次 IDE 被我们杀掉但 .ide 没清，CLI 会读到死端口并尝试连接陈旧 IDE，
+    // 导致 waitForPort 在 IDE 真正起来前误判失败。清掉后 CLI 会干净地启动全新 IDE 并自行重写 .ide。
+    // （注意：不要动 .ide-status —— 里面 "On" 表示服务端口已开启，是我们要保留的持久化状态。）
+    try {
+      const localAppData = process.env.LOCALAPPDATA || join(os.homedir(), 'AppData', 'Local');
+      const idePortFile = join(localAppData, '微信开发者工具', 'User Data', '47bc2ae129c54a6f1173e5c6cf14a7b6', 'Default', '.ide');
+      if (existsSync(idePortFile)) {
+        unlinkSync(idePortFile);
+        console.log('  🧹 已清理陈旧 .ide 端口文件（避免 CLI 挂到死端口）');
+      }
+    } catch {}
+
+    console.log(`  启动 DevTools（自动化端口 ${AUTO_PORT}）...`);
+    // 关键修复（2026-07-26）：buildDir 含空格（"WeChat Game"），在 shell:true 下 cmd.exe 会把路径
+    // 按空格拆词 → CLI 收到截断的 --project D:\Tare-workspace\Game\WeChat → 该目录无 project.config.json
+    // → getProjectInfo 稳定报 code 19。必须对路径加双引号，确保 CLI 收到完整路径。
+    const cliProc = spawn(cliPath, [
+      'auto',
+      '--project', `"${buildDir}"`,
+      '--auto-port', String(AUTO_PORT),
+      '--trust-project'
+    ], { shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
+
+    let cliOutput = '';
+    // 关键修复：DevTools CLI 在「服务端口未开启」时会交互式提示 “Enable IDE Service (y/N)”
+    // 并挂起等待 stdin。若不做应答，它会一直阻塞直到 waitForPort 超时（code 19 类失败）。
+    // 这里监测该提示并自动喂 'y\n'，从而让 CLI 自行持久化“开启服务端口”设置，
+    // 后续运行不再提示，实现全流程无人值守。
+    let enablePromptAnswered = false;
+    const answerEnablePrompt = () => {
+      if (enablePromptAnswered) return;
+      if (/Enable IDE Service/i.test(cliOutput)) {
+        enablePromptAnswered = true;
+        try {
+          cliProc.stdin.write('y\n');
+          console.log('  ↳ 检测到「开启工具服务」提示，已自动应答 y（启用 CLI 服务端口）');
+        } catch (e) {
+          console.warn(`  ⚠️  自动应答失败: ${e.message}`);
+        }
+      }
+    };
+    cliProc.stdout.on('data', d => { cliOutput += d.toString(); answerEnablePrompt(); });
+    cliProc.stderr.on('data', d => { cliOutput += d.toString(); answerEnablePrompt(); });
+    // 再保险：部分版本在首屏即等待输入而 stderr/stdout 关键字尚未 flush，
+    // 故 spawn 后主动预喂一次 y（缓冲的输入会在 CLI 读取 stdin 时被消费，幂等无害）。
+    const proactive = setTimeout(() => {
+      if (!enablePromptAnswered) {
+        try { cliProc.stdin.write('y\n'); enablePromptAnswered = true; console.log('  ↳ 主动预应答 y（启用 CLI 服务端口）'); } catch {}
+      }
+    }, 4000);
+
+    const portReady = await waitForPort(AUTO_PORT, DEVTOOLS_TIMEOUT_MS);
+    clearTimeout(proactive);
+    if (portReady) {
+      console.log(`  ✅ 端口 ${AUTO_PORT} 已就绪`);
+      process.__devtoolsCli = cliProc;
+      return; // 成功
+    }
+
+    // 端口未就绪：本轮尝试失败。cliProc 在超时后已无意义，清理后由下一轮 attempt 顶部的
+    // killDevTools() + .ide 端口文件清理重新拉起一个干净的 IDE。
+    // 注：不再依赖 CLI 的 “IDE may already started at port X” 提示做精准 kill——
+    // 该提示是“正在连接已有 IDE”的信息性日志，并非错误；旧逻辑误杀正常 IDE、反而掩盖了真正的 code 19。
+    console.error(`  ❌ 端口 ${AUTO_PORT} 未就绪（尝试 ${attempt}）`);
+    console.log('  CLI 输出:', cliOutput.trim().slice(0, 600));
+    try { cliProc.kill(); } catch {}
+    killDevTools();
+    if (attempt < MAX_ATTEMPTS) await sleep(2000);
   }
-  console.log(`  ✅ 端口 ${AUTO_PORT} 已就绪`);
 
-  // 保持进程引用
-  process.__devtoolsCli = cliProc;
+  console.error(`  ❌ ${MAX_ATTEMPTS} 次尝试后仍无法在端口 ${AUTO_PORT} 启动 DevTools`);
+  process.exit(1);
 }
 
 async function autoCompile() {
@@ -375,6 +446,7 @@ async function autoCompile() {
     process.exit(0);
   } catch (e) {
     console.error('  ❌ 连接失败:', e.message);
+    if (e.stack) console.error('  stack:', e.stack.split('\n').slice(0, 8).join('\n'));
     console.log('  请检查 DevTools 是否已启动并监听自动化端口');
     process.exit(1);
   }
@@ -385,7 +457,7 @@ function cleanup() {
   if (process.__devtoolsCli) {
     process.__devtoolsCli.kill();
   }
-  try { spawnSync('taskkill', ['/F', '/IM', 'wechatdevtools.exe'], { stdio: 'ignore' }); } catch {}
+  killDevTools();
   process.exit(0);
 }
 
@@ -406,6 +478,43 @@ async function waitForPort(port, timeoutMs) {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 可靠杀掉整棵 DevTools 进程树（守护进程 微信开发者工具.exe + wechatdevtools.exe + filewatcher）。
+// 关键：spawnSync 直传中文进程名「微信开发者工具」常因命令行编码匹配失败，导致 GUI 残存并不断
+// 重生 worker → cli 反复挂到陈旧 IDE → code 19。改为把命令写入 UTF-8+BOM 的临时 .ps1，
+// 用 powershell -File 执行（BOM 保证中文被正确解析），从而精确杀掉含中文名 GUI 的整棵树。
+function killDevTools() {
+  const ps = "Get-Process -Name wechatdevtools,微信开发者工具,wxfilewatcher_x64 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue\n" +
+    "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '*微信web开发者工具*' } | Stop-Process -Force -ErrorAction SilentlyContinue\n";
+  const tmp = join(os.tmpdir(), 'xxl_kill_devtools.ps1');
+  try { writeFileSync(tmp, '﻿' + ps, 'utf-8'); } catch {}
+  try { spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmp], { stdio: 'ignore' }); } catch {}
+  // 兜底：ASCII 名进程用 taskkill 整棵树杀（/T 含子进程）
+  try { spawnSync('taskkill', ['/F', '/T', '/IM', 'wechatdevtools.exe'], { stdio: 'ignore' }); } catch {}
+  try { spawnSync('taskkill', ['/F', '/T', '/IM', 'wxfilewatcher_x64.exe'], { stdio: 'ignore' }); } catch {}
+}
+
+// 是否仍有 DevTools 主进程在运行（用于轮询判定清理是否干净）
+function devToolsRunning() {
+  const ps = "(Get-Process -Name wechatdevtools,微信开发者工具 -ErrorAction SilentlyContinue).Count\n";
+  const tmp = join(os.tmpdir(), 'xxl_devtools_running.ps1');
+  try { writeFileSync(tmp, '﻿' + ps, 'utf-8'); } catch {}
+  try {
+    const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmp], { encoding: 'utf8' });
+    const n = parseInt((out.stdout || '').trim(), 10);
+    return Number.isFinite(n) && n > 0;
+  } catch {
+    return false;
+  }
+}
+
+// 精准杀掉占据指定端口的进程（清理 CLI 报出的“陈旧 IDE”端口，避免重启后仍然挂到它）
+function killPortOwner(port) {
+  try {
+    const ps = 'Get-NetTCPConnection -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq ' + port + ' } | ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force }';
+    spawnSync('powershell', ['-NoProfile', '-Command', ps], { stdio: 'ignore' });
+  } catch {}
+}
 
 // ===== 控制台插桩辅助（smoke gate 2.6） =====
 
