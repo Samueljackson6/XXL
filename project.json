@@ -1,0 +1,30 @@
+{
+  "version": "3.8.8",
+  "type": "mini-game",
+  "platform": "wechat",
+  "name": "xxl-tower-defense",
+  "title": "XXL 塔防",
+  "orientation": "portrait",
+  "width": 400,
+  "height": 700,
+  "launchScene": "db://assets/scenes/GameScene.scene",
+  "debug": false,
+  "sourceMaps": false,
+  "compress": true,
+  "build": {
+    "REMOTE_SERVER_ROOT": "",
+    "appid": "wx10c928d3274d2360",
+    "ENABLE_INSPECTOR": false,
+    "USE_SHRINKING": true,
+    "PACKAGE_VERSION": "1.0.0"
+  },
+  "builder": {
+    "wechatgame": {
+      "separateEngine": true,
+      "minified": true,
+      "sourceMaps": false,
+      "debug": false,
+      "embedWebDebugger": false
+    }
+  }
+}
