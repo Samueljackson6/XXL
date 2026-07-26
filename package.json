@@ -1,23 +1,27 @@
 {
-  "name": "xxl",
+  "name": "xxl-tower-defense",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
+  "description": "XXL Tower Defense - WeChat Mini Game (Cocos Creator 3.8.8)",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "build:mp": "vite build --mode miniprogram",
-    "preview": "vite preview",
-    "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts",
-    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint assets/scripts/**/*.ts",
+    "format": "prettier --write \"assets/scripts/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "cocos:open": "\"G:/Game tools/CocosCreator/CocosCreator.exe\" .",
+    "build:cocos": "node scripts/build-cocos.mjs",
+    "cocos:build:wechat": "node scripts/build-cocos.mjs",
+    "docs:kb": "node scripts/fetch-wechat-docs.js",
+    "deploy": "node scripts/deploy-wechat.mjs",
+    "ci:full": "node scripts/ci-full.mjs",
+    "verify": "vitest run && tsc --noEmit",
+    "clean": "node scripts/clean-build.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.1",
     "@types/node": "^26.1.1",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
@@ -25,13 +29,16 @@
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.0",
+    "miniprogram-automator": "^0.12.1",
     "prettier": "^3.3.3",
-    "typescript": "~6.0.2",
-    "vite": "^8.1.1",
+    "turndown": "^7.2.4",
+    "typescript": "~5.4.0",
     "vitest": "^2.0.0",
-    "wait-on": "^9.0.10"
+    "wait-on": "^9.0.10",
+    "ws": "^8.21.1"
   },
-  "dependencies": {
-    "phaser": "3.80.1"
-  }
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "58f12333-1c31-4e19-bfc6-b23eb05b743f"
 }
