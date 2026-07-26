@@ -63,17 +63,26 @@ async function main() {
   // Cocos CLI 在 postBuild 统计阶段可能抛「Missing class: GameBootstrap」——这是一个
   // 无害的度量崩溃（类尚未在子进程上下文求值），所有游戏文件已写盘，运行时 bundle 已注册该类。
   // 因此用「产物完整性」而非「退出码」作为成功判据，与 build-cocos.mjs 保持一致。
+  // 委托给 build-cocos.mjs 执行构建：它走 configPath / separateEngine 路径，
+  // 能把首包压到 <4MB（约 3.47MB），远优于内联 --build 字符串（无 separateEngine → 约 4.42MB，超限）。
+  // 与 build-cocos.mjs 一致：用「产物完整性」而非「退出码」作为成功判据。
   let cocosFailed = false;
   try {
-    execSync(`"${COCOS_CREATOR}" --project "${ROOT}" --build "platform=wechatgame;appid=${APPID};buildPath=${ROOT}/build/wechatgame"`, {
-      encoding: 'utf-8',
-      timeout: BUILD_TIMEOUT_MS,
+    const buildRes = spawnSync(process.execPath, [resolve(ROOT, 'scripts', 'build-cocos.mjs')], {
+      cwd: ROOT,
       stdio: 'inherit',
+      timeout: BUILD_TIMEOUT_MS,
     });
-    console.log('  ✅ 构建成功');
+    if (buildRes.status !== 0) {
+      cocosFailed = true;
+      const detail = buildRes.error ? buildRes.error.message : `exit=${buildRes.status}`;
+      console.warn(`\n⚠️  build-cocos.mjs 退出码非零（可能为无害的度量阶段崩溃）: ${detail.split('\n')[0]}`);
+    } else {
+      console.log('  ✅ 构建成功');
+    }
   } catch (err) {
     cocosFailed = true;
-    console.warn(`\n⚠️  Cocos CLI 退出码非零（可能为无害的度量阶段崩溃）: ${err.message.split('\n')[0]}`);
+    console.warn(`\n⚠️  构建委托异常: ${err.message.split('\n')[0]}`);
   }
 
   // === 阶段 2: 验证产物 ===
