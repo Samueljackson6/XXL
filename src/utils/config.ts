@@ -5,6 +5,19 @@ export const TILE_SIZE = 64;
 export const GRID_COLS = Math.floor(GAME_WIDTH / TILE_SIZE);
 export const GRID_ROWS = Math.floor((GAME_HEIGHT - HUD_HEIGHT) / TILE_SIZE);
 
+// Depth layering: lower = background, higher = foreground
+export const DEPTH = {
+  GRID: 0,
+  PATH: 1,
+  ENEMIES: 10,
+  TOWERS: 20,
+  PROJECTILES: 30,
+  PREVIEW: 40,
+  UI: 50,
+  FLOATING_TEXT: 90,
+  PANEL: 100,
+} as const;
+
 export const PLAYER_LIVES = 20;
 
 export const PATH_POINTS: { x: number; y: number }[] = [
@@ -29,7 +42,7 @@ export const TOWER_TYPES = {
     color: 0x4fc3f7,
     projectileSpeed: 350,
     aoeRadius: 0,
-    slowEffect: null as { duration: number; factor: number } | null,
+    slowEffect: null,
     description: '快速射击，伤害一般',
   },
   cannon: {
@@ -41,7 +54,7 @@ export const TOWER_TYPES = {
     color: 0xff7043,
     projectileSpeed: 250,
     aoeRadius: 40,
-    slowEffect: null as { duration: number; factor: number } | null,
+    slowEffect: null,
     description: '高伤害AOE，攻速慢',
   },
   frost: {
@@ -53,10 +66,30 @@ export const TOWER_TYPES = {
     color: 0x81d4fa,
     projectileSpeed: 200,
     aoeRadius: 0,
-    slowEffect: { duration: 2000, factor: 0.5 } as { duration: number; factor: number } | null,
+    slowEffect: { duration: 2000, factor: 0.5 },
     description: '减速敌人，持续伤害',
   },
 } as const;
+
+interface SlowEffect {
+  readonly duration: number;
+  readonly factor: number;
+}
+
+export type TowerType = keyof typeof TOWER_TYPES;
+export type TowerConfig = (typeof TOWER_TYPES)[TowerType];
+export type TowerTypeConfig = {
+  name: string;
+  cost: number;
+  range: number;
+  damage: number;
+  fireRate: number;
+  color: number;
+  projectileSpeed: number;
+  aoeRadius: number;
+  slowEffect: SlowEffect | null;
+  description: string;
+};
 
 export const ENEMY_TYPES = {
   basic: { hp: 40, speed: 90, reward: 10, color: 0xe74c3c, hitRadius: 12 },

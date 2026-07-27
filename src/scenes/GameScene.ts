@@ -5,9 +5,11 @@ import {
   TILE_SIZE,
   GAME_WIDTH,
   GAME_HEIGHT,
+  HUD_HEIGHT,
   TOWER_TYPES,
   ECONOMY_CONFIG,
   WAVE_CONFIG,
+  DEPTH,
 } from '../utils/config';
 import { Grid } from '../systems/Grid';
 import { WaveManager } from '../systems/WaveManager';
@@ -60,7 +62,7 @@ export default class GameScene extends Phaser.Scene {
     this.path = new Path();
 
     this.pathLength = this.path.getTotalLength();
-    this.economy = new Economy();
+    this.economy = Economy.create();
     this.waveManager = new WaveManager(this, this.onWaveComplete);
     this.hud = new HUD(this);
     this.towerSelectBar = new TowerSelectBar(this, this.state);
@@ -72,6 +74,7 @@ export default class GameScene extends Phaser.Scene {
         this.selectedTower.upgrade();
         this.towerInfoPanel.refresh();
         this.audioManager.play('towerUpgrade');
+        this.economy.save();
       }
     };
     this.towerInfoPanel.onSell = () => {
@@ -82,6 +85,7 @@ export default class GameScene extends Phaser.Scene {
         this.towerInfoPanel.hide();
         this.selectedTower = null;
         this.audioManager.play('towerSell');
+        this.economy.save();
       }
     };
 
@@ -111,10 +115,11 @@ export default class GameScene extends Phaser.Scene {
 
   private drawGrid(): void {
     this.gridGraphics = this.add.graphics();
+    this.gridGraphics.setDepth(DEPTH.GRID);
     for (let row = 0; row < GRID_ROWS; row++) {
       for (let col = 0; col < GRID_COLS; col++) {
         const x = col * TILE_SIZE;
-        const y = row * TILE_SIZE;
+        const y = row * TILE_SIZE + HUD_HEIGHT;
 
         this.gridGraphics.fillStyle(0x2e7d32);
         this.gridGraphics.fillRect(x, y, TILE_SIZE, TILE_SIZE);
@@ -126,6 +131,7 @@ export default class GameScene extends Phaser.Scene {
 
   private drawPathOverlay(): void {
     this.pathGraphics = this.add.graphics();
+    this.pathGraphics.setDepth(DEPTH.PATH);
     const points = this.path.getPoints();
 
     this.pathGraphics.lineStyle(34, 0x4e342e, 0.5);
@@ -147,6 +153,7 @@ export default class GameScene extends Phaser.Scene {
 
   private setupInput(): void {
     this.previewGraphics = this.add.graphics();
+    this.previewGraphics.setDepth(DEPTH.PREVIEW);
     this.previewGraphics.setVisible(false);
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -200,10 +207,11 @@ export default class GameScene extends Phaser.Scene {
       this.grid.place(col, row);
 
       const towerX = col * TILE_SIZE + TILE_SIZE / 2;
-      const towerY = row * TILE_SIZE + TILE_SIZE / 2;
+      const towerY = row * TILE_SIZE + HUD_HEIGHT + TILE_SIZE / 2;
       const tower = new Tower(this, towerX, towerY, this.selectedTowerType);
       this.towers.push(tower);
       this.audioManager.play('towerPlace');
+      this.economy.save();
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -259,6 +267,7 @@ export default class GameScene extends Phaser.Scene {
 
   private onEnemyReachEnd = (): void => {
     this.economy.loseLife();
+    this.economy.save();
     if (this.economy.lives <= 0) {
       this.endGame();
     }
@@ -363,6 +372,7 @@ export default class GameScene extends Phaser.Scene {
 
       if (enemy.distanceTraveled >= this.pathLength) {
         enemy.alive = false;
+        this.waveManager.onEnemyRemoved(enemy);
         this.onEnemyReachEnd();
       }
     }
@@ -424,40 +434,28 @@ export default class GameScene extends Phaser.Scene {
                 this.totalKills++;
                 new FloatingText(this, proj.projX, proj.projY - 10, `+${reward}`);
                 this.audioManager.play('enemyDeath');
+                this.economy.save();
               }
             }
           }
         } else {
-          let closestEnemy: Enemy | null = null;
-          let closestDist = 18;
-
-          for (const enemy of this.enemies) {
-            if (!enemy.alive) continue;
-            const dx = enemy.x - proj.projX;
-            const dy = enemy.y - proj.projY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < closestDist) {
-              closestDist = dist;
-              closestEnemy = enemy;
-            }
-          }
-
-          if (closestEnemy) {
-            const dead = closestEnemy.takeDamage(proj.damage);
+          if (proj.targetEnemy && proj.targetEnemy.alive) {
+            const dead = proj.targetEnemy.takeDamage(proj.damage);
             if (dead) {
-              closestEnemy.alive = false;
-              this.waveManager.onEnemyRemoved(closestEnemy);
+              proj.targetEnemy.alive = false;
+              this.waveManager.onEnemyRemoved(proj.targetEnemy);
               const reward = this.economy.killReward(
-                closestEnemy.reward,
+                proj.targetEnemy.reward,
                 this.waveManager.currentWave,
               );
               this.economy.earn(reward);
               this.totalKills++;
-              new FloatingText(this, closestEnemy.x, closestEnemy.y - 10, `+${reward}`);
+              new FloatingText(this, proj.targetEnemy.x, proj.targetEnemy.y - 10, `+${reward}`);
               this.audioManager.play('enemyDeath');
+              this.economy.save();
             }
             if (proj.slowEffect) {
-              closestEnemy.applySlow(proj.slowEffect.duration, proj.slowEffect.factor);
+              proj.targetEnemy.applySlow(proj.slowEffect.duration, proj.slowEffect.factor);
             }
           }
         }

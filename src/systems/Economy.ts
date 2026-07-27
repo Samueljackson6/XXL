@@ -9,6 +9,16 @@ export class Economy {
     this.lives = ECONOMY_CONFIG.startingLives;
   }
 
+  static create(): Economy {
+    const saved = Economy.load();
+    const econ = new Economy();
+    if (saved) {
+      econ.gold = saved.gold;
+      econ.lives = saved.lives;
+    }
+    return econ;
+  }
+
   canAfford(cost: number): boolean {
     return this.gold >= cost;
   }
@@ -41,12 +51,20 @@ export class Economy {
   }
 
   save(): void {
+    const data = { gold: this.gold, lives: this.lives };
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wx = (globalThis as any).wx;
       if (wx && wx.setStorageSync) {
-        wx.setStorageSync('xxl_economy', { gold: this.gold, lives: this.lives });
+        wx.setStorageSync('xxl_economy', data);
+        return;
       }
+    } catch {
+      // Not in WeChat environment
+    }
+    // Browser fallback: localStorage
+    try {
+      localStorage.setItem('xxl_economy', JSON.stringify(data));
     } catch {
       // Storage not available
     }
@@ -60,6 +78,13 @@ export class Economy {
         const data = wx.getStorageSync('xxl_economy');
         if (data) return data as { gold: number; lives: number };
       }
+    } catch {
+      // Not in WeChat environment
+    }
+    // Browser fallback: localStorage
+    try {
+      const raw = localStorage.getItem('xxl_economy');
+      if (raw) return JSON.parse(raw) as { gold: number; lives: number };
     } catch {
       // Storage not available
     }

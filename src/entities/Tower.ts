@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { TOWER_TYPES, TILE_SIZE } from '../utils/config';
+import { TOWER_TYPES, TILE_SIZE, DEPTH } from '../utils/config';
 
 export type TowerType = keyof typeof TOWER_TYPES;
 
@@ -25,6 +25,7 @@ export class Tower extends Phaser.GameObjects.Container {
 
     this.createVisuals();
     scene.add.existing(this);
+    this.setDepth(DEPTH.TOWERS);
   }
 
   private createVisuals(): void {

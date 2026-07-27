@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { DEPTH } from '../utils/config';
 import type { Enemy } from '../entities/Enemy';
 
 export class Projectile extends Phaser.GameObjects.Container {
@@ -50,6 +51,7 @@ export class Projectile extends Phaser.GameObjects.Container {
     this.add(this.sprite);
 
     scene.add.existing(this);
+    this.setDepth(DEPTH.PROJECTILES);
   }
 
   update(delta: number): boolean {

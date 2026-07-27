@@ -283,9 +283,11 @@ async function launchDevTools() {
     } catch {}
 
     console.log(`  启动 DevTools（自动化端口 ${AUTO_PORT}）...`);
-    // 关键修复（2026-07-26）：buildDir 含空格（"WeChat Game"），在 shell:true 下 cmd.exe 会把路径
-    // 按空格拆词 → CLI 收到截断的 --project D:\Tare-workspace\Game\WeChat → 该目录无 project.config.json
-    // → getProjectInfo 稳定报 code 19。必须对路径加双引号，确保 CLI 收到完整路径。
+    // 关键修复（2026-07-26）：buildDir 含空格时（旧路径 "WeChat Game"），在 shell:true 下 cmd.exe
+    // 会把路径按空格拆词 → CLI 收到截断的 --project D:\Tare-workspace\Game\WeChat → 该目录无
+    // project.config.json → getProjectInfo 稳定报 code 19。必须对路径加双引号，确保 CLI 收到完整路径。
+    // 注（2026-07-27）：工程已整体迁至无空格路径 D:\Tare-workspace\Game\WeChatMiniGame，此类空格路径
+    // bug 已从根上消除；本引号修复仍保留作双保险（任何含空格路径都不会再触发 code 19）。
     const cliProc = spawn(cliPath, [
       'auto',
       '--project', `"${buildDir}"`,

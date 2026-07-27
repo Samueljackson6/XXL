@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="cn">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Unity 游戏接入微信小游戏指南 | 微信开放文档</title>
+    <meta name="description" content="微信开发者平台文档">
+    <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="keywords" content="微信官方文档">
+  <link rel="shortcut icon" type="image/x-icon" href="https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico">
+  <link rel="mask-icon" color="#4C4C4C" href="https://res.wx.qq.com/a/wx_fed/assets/res/MjliNWVm.svg">
+  <link rel="apple-touch-icon-precomposed" href="https://res.wx.qq.com/a/wx_fed/assets/res/OTE0YTAw.png">
+  <script>
+(function () {
+  'use strict';
+
+  const SCRIPT_URLs = [
+      'https://dldir1.qq.com/WechatWebDev/devPlatform/px.min.js',
+      'https://dev.weixin.qq.com/platform-console/proxy/assets/tel/px.min.js',
+  ];
+  const param = {
+      maskMode: 'no-mask', // 隐私策略, all-mask 或 no-mask, 详见：https://dev.weixin.qq.com/docs/analysis/sdk/docs.html
+      recordCanvas: false,  // 若要采集canvas, 设为true
+      projectId: 'wxef34f91ddab0c534-0HLdQNKAk-dzsFsA', // 项目 ID，需替换为体验分析项目 ID
+      iframe: false, // 是否采集 iframe 页面
+      console: true, // 是否采集 console 输出的错误日志
+      network: true, // 是否采集网络错误
+  };
+  function loadScript(url) {
+      return new Promise((resolve, reject) => {
+          const scriptEle = document.createElement('script');
+          scriptEle.type = 'text/javascript';
+          scriptEle.async = true;
+          scriptEle.src = url;
+          scriptEle.onload = () => {
+              resolve(url);
+          };
+          scriptEle.onerror = () => {
+              reject(new Error('Script load error'));
+          };
+          document.head.appendChild(scriptEle);
+      });
+  }
+  async function main() {
+      try {
+          sessionStorage.setItem('wxobs_start_timestamp', String(Date.now()));
+          const fastestUrl = await Promise.race(SCRIPT_URLs.map(url => loadScript(url)));
+          window.__startPX && window.__startPX(param);
+      }
+      catch (error) {
+          console.error('Error loading scripts:', error);
+      }
+  }
+  main();
+
+})();
+        </script>
+    
+    <link rel="preload" href="https://res.wx.qq.com/wxdoc/dist/assets/css/0.styles.fab4c0c1.css" as="style"><link rel="preload" href="https://res.wx.qq.com/wxdoc/dist/assets/js/app.1a44f719.js" as="script"><link rel="preload" href="https://res.wx.qq.com/wxdoc/dist/assets/js/1932.c906aaf8.js" as="script">
+    <link rel="stylesheet" href="https://res.wx.qq.com/wxdoc/dist/assets/css/0.styles.fab4c0c1.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container minigame-theme"><div class="theme-container"><header class="navbar navbar_with-link"><div class="navbar__left"><a href="/doc/" class="home-link"><div class="logo__wrp"><span class="logo__icon"></span></div></a> <span class="dot"></span> <div class="dropdown-wrapper"><a class="dropdown-title"><span class="title">小游戏</span> <span class="arrow right"></span></a> <ul class="nav-dropdown" style="display:none;"><li class="dropdown-item"><!----> <a href="/miniprogram/dev/framework/" class="nav-link external">
+  小程序
+</a></li><li class="dropdown-item selected"><!----> <a href="/minigame/introduction/" class="nav-link external">
+  小游戏
+</a></li><li class="dropdown-item"><!----> <a href="/doc/subscription/guide/" class="nav-link external">
+  公众号
+</a></li><li class="dropdown-item"><!----> <a href="/doc/service/guide/" class="nav-link external">
+  服务号
+</a></li><li class="dropdown-item"><!----> <a href="/doc/oplatform/open/intro.html" class="nav-link external">
+  开放平台
+</a></li><li class="dropdown-item"><!----> <a href="https://work.weixin.qq.com/api/doc" class="nav-link external">
+  企业微信
+</a></li><li class="dropdown-item"><!----> <a href="https://pay.weixin.qq.com/doc/v3/merchant/4012062524" class="nav-link external">
+  微信支付
+</a></li><li class="dropdown-item"><!----> <a href="/doc/channels/" class="nav-link external">
+  视频号
+</a></li><li class="dropdown-item"><!----> <a href="/doc/store/shop/" class="nav-link external">
+  微信小店
+</a></li><li class="dropdown-item"><!----> <a href="/doc/aispeech/platform/INTRODUCTION.html" class="nav-link external">
+  智能对话
+</a></li><li class="dropdown-item"><!----> <a href="/doc/xwei/xiaowei-introduction/Introduction.html" class="nav-link external">
+  腾讯小微
+</a></li><li class="dropdown-item"><!----> <a href="/doc/edu/introduction.html" class="nav-link external">
+  教育平台
+</a></li></ul></div></div> <div class="navbar__center"><nav class="nav-links"><div class="nav-item"><a href="/minigame/introduction/" class="nav-link">介绍</a></div><div class="nav-item selected"><a href="/minigame/dev/guide/" class="nav-link router-link-active">开发</a></div><div class="nav-item"><a href="/minigame/design/" class="nav-link">设计</a></div><div class="nav-item"><a href="/minigame/product/" class="nav-link">运营</a></div><div class="nav-item"><a href="/minigame/analysis/" class="nav-link">数据</a></div></nav></div> <div class="navbar__right"><nav class="nav-links"><div class="nav-item community-item"><a href="https://developers.weixin.qq.com/community/minigame" target="_blank" class="nav-link external">
+  社区
+</a></div><div class="nav-item community-item"><a href="https://developers.weixin.qq.com/community/business/CategorySearch?cid=119" target="_blank" class="nav-link external">
+  学堂
+</a></div></nav> <ul class="lang-tab"><li class="lang-tab__icon"><img src="https://res.wx.qq.com/t/components/icons/base/translate_regular.svg"></li></ul> <div class="search__wrp-flex"><div class="search__input"><div class="weui-desktop-search"><button class="weui-desktop-icon-btn weui-desktop-search__btn weui-desktop-icon-btn__width"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.4529 16.4014C14.2428 17.4001 12.6915 18 11 18C7.134 18 4 14.866 4 11C4 7.134 7.134 4 11 4C14.866 4 18 7.134 18 11C18 12.7425 17.3633 14.3363 16.3099 15.5614L20.4243 19.6757L19.5757 20.5243L15.4529 16.4014ZM16.8 11C16.8 14.2033 14.2033 16.8 11 16.8C7.79674 16.8 5.2 14.2033 5.2 11C5.2 7.79676 7.79674 5.20001 11 5.20001C14.2033 5.20001 16.8 7.79676 16.8 11Z" fill="black"></path></svg></button></div> <a href="javascript:;" class="search-back__btn">取消</a></div> <div class="reco-list__wrp" style="display:none;"><ul class="reco__list"></ul> <div class="show-more"><a href="/doc/search?source=more&amp;query=&amp;doc_type=minigame&amp;jumpbackUrl=%2Fdoc%2F" class="reco-item__link">查看更多 </a></div></div> <div class="reco-list__wrp" style="display:none;"><div class="show-more"><a href="/doc/search?source=more&amp;query=&amp;doc_type=minigame&amp;jumpbackUrl=%2Fdoc%2F" class="reco-item__link">在游戏下暂无结果，查看其它业务相关内容 &gt; </a></div></div></div></div></header> <div class="subnavbar"><ul class="subnavbar__list"><li class="subnavbar__item selected" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/guide/" target="_self" class="router-link-active">
+          指南
+          </a> <!----></div> <!----></li><li class="subnavbar__item" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/reference/" target="_self">
+          框架
+          </a> <!----></div> <!----></li><li class="subnavbar__item" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/api/" target="_self">
+          API
+          </a> <!----></div> <!----></li><li class="subnavbar__item" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/api-backend/" target="_self">
+          服务端
+          </a> <!----></div> <!----></li><li class="subnavbar__item" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/devtools/devtools" target="_self">
+          工具
+          </a> <!----></div> <!----></li><li class="subnavbar__item dropdown-subnavbar" style="display:;"><div class="dropdown-subnavbar-title"><a>云服务</a> <span class="arrow right dropdown-subnavbar-select"></span></div> <ul class="dropdown-subnavbar-ul"><li class="dropdown-item" style="display:;"><a href="/minigame/dev/wxcloud/" target="_self" class="nav-link external">
+            云开发
+          </a></li><li class="dropdown-item" style="display:;"><a href="/minigame/dev/wxcloudrun/src/" target="_self" class="nav-link external">
+            云托管
+          </a></li></ul></li><li class="subnavbar__item" style="display:;"><div class="dropdown-subnavbar-title"><a href="/minigame/dev/minigame-testtool/" target="_self">
+          云测试
+          </a> <!----></div> <!----></li></ul></div> <div class="mobile-links__wrp"><div class="mobile-links_mobile"><a href="javascript:;" class="mobile-links__btn">开发</a></div> <div class="mobile-links__panel"><div class="links-panel__bd"><nav class="nav-links"><div class="nav-item"><a href="/minigame/introduction/" class="nav-link">介绍</a></div><div class="nav-item selected"><a href="/minigame/dev/guide/" class="nav-link router-link-active">开发</a></div><div class="nav-item"><a href="/minigame/design/" class="nav-link">设计</a></div><div class="nav-item"><a href="/minigame/product/" class="nav-link">运营</a></div><div class="nav-item"><a href="/minigame/analysis/" class="nav-link">数据</a></div></nav></div> <div class="links-panel__ft"><ul class="lang-tab"><li class="lang-tab__icon"><img src="https://res.wx.qq.com/t/components/icons/base/translate_regular.svg"></li></ul></div></div> <div><div class="weui-mask" style="display:none;"></div> <div class="weui-actionsheet "><!----> <div class="weui-actionsheet__menu"><div class="weui-actionsheet__cell">中文</div><div class="weui-actionsheet__cell">EN</div></div> <div class="weui-actionsheet__action"><div class="weui-actionsheet__cell">取消</div></div></div></div></div> <a href="javascript:;" class="mobile-search-btn"></a> <div class="main-container" style="margin-top:144px;"><div class="main-contontaier__bd" style="min-height:0px;"><div class="sidebar__wrp"><div class="sidebar-cell_mobile"><li class="subnavbar__item selected"><a href="javascript:;" target="_self">指南</a></li></div> <aside class="sidebar" style="top:144px;"> <div class="TreeNavigation"><div class="NavigationLevel NavigationLevel--level-0"><ul><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/" class="NavigationItem__router-link router-link-active">
+      开发指南
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/" class="NavigationItem__router-link router-link-active">
+      开发指南
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/develop/start.html" class="NavigationItem__router-link">
+      学习新手教程
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/develop/develop.html" class="NavigationItem__router-link">
+      学习进阶指南
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/engine-overview.html" class="NavigationItem__router-link">
+      游戏引擎
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/engine-overview.html" class="NavigationItem__router-link">
+      引擎适配概述
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/cocos-laya-egret.html" class="NavigationItem__router-link">
+      Cocos/Laya/Egret引擎适配
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform.html" class="NavigationItem__router-link">
+      Unity/团结引擎适配
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/SDKInstaller.html" class="NavigationItem__router-link">
+      基本
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/SDKInstaller.html" class="NavigationItem__router-link">
+      安装与使用
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Guide.html" aria-current="page" class="NavigationItem__router-link router-link-exact-active router-link-active">
+      入门指南
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Transform.html" class="NavigationItem__router-link">
+      快速开始
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/ShowCase.html" class="NavigationItem__router-link">
+      优秀案例
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/CHANGELOG.html" class="NavigationItem__router-link">
+      更新日志
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/TechSummary.html" class="NavigationItem__router-link">
+      方案概述与兼容性
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/TechSummary.html" class="NavigationItem__router-link">
+      技术原理
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Evaluation.html" class="NavigationItem__router-link">
+      兼容性评估
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DevelopmentQAList.html" class="NavigationItem__router-link">
+      技术常见问题QA
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PerfOptimization.html" class="NavigationItem__router-link">
+      性能优化
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-4"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PerfOptimization.html" class="NavigationItem__router-link">
+      性能优化总览
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PerfOptimization.html" class="NavigationItem__router-link">
+      性能优化总览
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PerfMeasure.html" class="NavigationItem__router-link">
+      性能优化评估标准
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-4"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/StartupOptimization.html" class="NavigationItem__router-link">
+      启动性能
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/StartupOptimization.html" class="NavigationItem__router-link">
+      提升游戏启动速度
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Startup.html" class="NavigationItem__router-link">
+      启动流程与时序
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingLoader.html" class="NavigationItem__router-link">
+      使用 Loader 进行游戏加载
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/ResourcesLoading.html" class="NavigationItem__router-link">
+      资源按需加载概述
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingAssetBundle.html" class="NavigationItem__router-link">
+      使用 AssetBundle 按需加载
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingAddressable.html" class="NavigationItem__router-link">
+      使用 Addressable 按需加载
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/InstantGameGuide.html" class="NavigationItem__router-link">
+      使用 AutoStreaming 按需加载
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/CustomLoading.html" class="NavigationItem__router-link">
+      定制启动封面
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/LaunchOpera.html" class="NavigationItem__router-link">
+      设计启动剧情
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingPreload.html" class="NavigationItem__router-link">
+      使用预下载功能
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/FirstSceneOptimization.html" class="NavigationItem__router-link">
+      首场景启动优化
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WasmSplit.html" class="NavigationItem__router-link">
+      使用代码分包工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/ReportStartupStat.html" class="NavigationItem__router-link">
+      启动留存数据上报统计
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PerformanceMonitor.html" class="NavigationItem__router-link">
+      最佳实践检测工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WXFont.html" class="NavigationItem__router-link">
+      微信系统字体
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-4"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/OptimizationPerformence.html" class="NavigationItem__router-link">
+      运行性能
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/OptimizationPerformence.html" class="NavigationItem__router-link">
+      优化运行性能
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/AndroidProfile.html" class="NavigationItem__router-link">
+      Android CPU Profiler 性能调优
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UnityProfiler.html" class="NavigationItem__router-link">
+      Unity Profiler 性能调优
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/OptimizationMemory.html" class="NavigationItem__router-link">
+      优化内存
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingMemoryProfiler.html" class="NavigationItem__router-link">
+      ProfilingMemory分析内存
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/CompressedTexture.html" class="NavigationItem__router-link">
+      压缩纹理优化
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/AssetOptimization.html" class="NavigationItem__router-link">
+      资源优化工具与建议
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/iOSOptimization.html" class="NavigationItem__router-link">
+      iOS高性能 与 高性能+ 模式
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/RenderOptimization.html" class="NavigationItem__router-link">
+      优化渲染性能
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/EmscriptenGLX.html" class="NavigationItem__router-link">
+      EmscriptenGLX渲染模式
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/CustomURP.html" class="NavigationItem__router-link">
+      定制微信小游戏的 URP 管线
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WebGL2.html" class="NavigationItem__router-link">
+      WebGL2.0渲染支持说明
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DeepProfileTool.html" class="NavigationItem__router-link">
+      性能深度分析工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/HighPreciseTime.html" class="NavigationItem__router-link">
+      高精度时间
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/PowerPerf-iOS.html" class="NavigationItem__router-link">
+      微信小游戏功耗分析指引 -- iOS 篇
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/AsyncShaderWarmup.html" class="NavigationItem__router-link">
+      Shader 异步 Warmup
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/iOSMetal.html" class="NavigationItem__router-link">
+      iOS Metal 渲染
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Multithread.html" class="NavigationItem__router-link">
+      多线程
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/worker-showcase.html" class="NavigationItem__router-link">
+      最佳实践：使用多线程加速逻辑
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/ParticleBudget.html" class="NavigationItem__router-link">
+      优化实战: Particle Simulate Budget方案
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DataCDN.html" class="NavigationItem__router-link">
+      版本更新与资源部署
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DataCDN.html" class="NavigationItem__router-link">
+      小游戏资源部署
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/FileCache.html" class="NavigationItem__router-link">
+      小游戏资源缓存
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Update.html" class="NavigationItem__router-link">
+      小游戏版本更新
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WX_SDK.html" class="NavigationItem__router-link">
+      能力适配
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WX_SDK.html" class="NavigationItem__router-link">
+      WX SDK 平台能力适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/AudioAndVideo.html" class="NavigationItem__router-link">
+      音频视频适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/fixScreen.html" class="NavigationItem__router-link">
+      屏幕适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/InputAdaptation.html" class="NavigationItem__router-link">
+      输入法适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/OpenData.html" class="NavigationItem__router-link">
+      排行榜与微信关系数据
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/BackendServiceStartup.html" class="NavigationItem__router-link">
+      后端服务指引
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/UsingNetworking.html" class="NavigationItem__router-link">
+      网络通信适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/wasmWaterMark.html" class="NavigationItem__router-link">
+      使用水印保护代码包安全
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/BuildTemplate.html" class="NavigationItem__router-link">
+      配置构建模板
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/WechatPreview.html" class="NavigationItem__router-link">
+      实时预览工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/MultiPackage.html" class="NavigationItem__router-link">
+      多包融合工具
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DebugAndException.html" class="NavigationItem__router-link">
+      调试与异常处理
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DebugAndException.html" class="NavigationItem__router-link">
+      开发错误调试与排查
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/IssueForProduction.html" class="NavigationItem__router-link">
+      现网错误日志上报与排查
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/AssetDescription.html" class="NavigationItem__router-link">
+      MiniGameConfig.asset 说明
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DevelopmentQAList.html" class="NavigationItem__router-link">
+      其他
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/DevelopmentQAList.html" class="NavigationItem__router-link">
+      技术常见问题QA
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/IssueAndContact.html" class="NavigationItem__router-link">
+      问题反馈与联系我们
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/unity-webgl-transform/Design/Salon.html" class="NavigationItem__router-link">
+      技术沙龙
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation.html" class="NavigationItem__router-link">
+      通用引擎适配方案
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/QuickStart.html" class="NavigationItem__router-link">
+      基础指南
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/QuickStart.html" class="NavigationItem__router-link">
+      快速开始
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/TechPrinciple.html" class="NavigationItem__router-link">
+      技术原理
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-4"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/EmscriptenExport.html" class="NavigationItem__router-link">
+      典型引擎适配
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/Cocos2dxExport.html" class="NavigationItem__router-link">
+      Cocos2d-x 导出
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/UE4Export.html" class="NavigationItem__router-link">
+      UE4 导出
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/CustomEngineExport.html" class="NavigationItem__router-link">
+      自研引擎导出
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/TransformTool.html" class="NavigationItem__router-link">
+      转换工具使用
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/LaunchProcess.html" class="NavigationItem__router-link">
+      启动流程说明
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/SDKBuild.html" class="NavigationItem__router-link">
+      SDK 集成
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/SDKBuild.html" class="NavigationItem__router-link">
+      SDK 集成指南
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/HttpAdapter.html" class="NavigationItem__router-link">
+      适配方案
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/HttpAdapter.html" class="NavigationItem__router-link">
+      HTTP 适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/FileSystemAdapter.html" class="NavigationItem__router-link">
+      文件系统适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/SocketAdapter.html" class="NavigationItem__router-link">
+      TCP/UDP Socket 适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/WebSocketAdapter.html" class="NavigationItem__router-link">
+      WebSocket 适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/KeyboardAdapter.html" class="NavigationItem__router-link">
+      键盘适配
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/WXOpenAPI.html" class="NavigationItem__router-link">
+      微信开放接口
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/UEHttpIntegration.html" class="NavigationItem__router-link">
+      进阶内容
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/UEHttpIntegration.html" class="NavigationItem__router-link">
+      UE 引擎 HTTP 集成
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/Design/FAQ.html" class="NavigationItem__router-link">
+      常见问题
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/game-engine/common-adaptation/CHANGELOG.html" class="NavigationItem__router-link">
+      更新日志
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/env.html" class="NavigationItem__router-link">
+      运行时
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/env.html" class="NavigationItem__router-link">
+      运行环境
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/js-support.html" class="NavigationItem__router-link">
+      JS 支持情况
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/operating-mechanism.html" class="NavigationItem__router-link">
+      运行机制
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/update-mechanism.html" class="NavigationItem__router-link">
+      更新机制
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/client-lib/" class="NavigationItem__router-link">
+      基础库
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/client-lib/version.html" class="NavigationItem__router-link">
+      版本分布
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/client-lib/compatibility.html" class="NavigationItem__router-link">
+      低版本兼容
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <!----> <!----> <a href="https://developers.weixin.qq.com/miniprogram/dev/framework/release/" target="_blank" class="NavigationItem__external-link">更新日志</a></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/" class="NavigationItem__router-link">
+      调试
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/vConsole.html" class="NavigationItem__router-link">
+      vConsole
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/SourceMap.html" class="NavigationItem__router-link">
+      Source Map
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/remote-debug.html" class="NavigationItem__router-link">
+      真机调试
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/realtimelog/" class="NavigationItem__router-link">
+      实时日志
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/PublicErrno.html" class="NavigationItem__router-link">
+      Errno错误码
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/debug/gamelogmanager.html" class="NavigationItem__router-link">
+      游戏日志分析
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/runtime/adapter.html" class="NavigationItem__router-link">
+      Adapter
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/network.html" class="NavigationItem__router-link">
+      基础能力
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/network.html" class="NavigationItem__router-link">
+      网络
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/network.html" class="NavigationItem__router-link">
+      使用说明
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/HTTPDNS.html" class="NavigationItem__router-link">
+      移动解析HttpDNS
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/message-push.html" class="NavigationItem__router-link">
+      消息推送
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/file-system.html" class="NavigationItem__router-link">
+      存储
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/file-system.html" class="NavigationItem__router-link">
+      文件系统
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/storage.html" class="NavigationItem__router-link">
+      本地缓存
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/render.html" class="NavigationItem__router-link">
+      渲染
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/authorize.html" class="NavigationItem__router-link">
+      权限
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/module.html" class="NavigationItem__router-link">
+      模块化
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/scene.html" class="NavigationItem__router-link">
+      场景值
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/interaction.html" class="NavigationItem__router-link">
+      游戏交互
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/audio.html" class="NavigationItem__router-link">
+      音频
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/video.html" class="NavigationItem__router-link">
+      视频
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/code-package.html" class="NavigationItem__router-link">
+      代码包
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/code-package.html" class="NavigationItem__router-link">
+      代码包
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/subPackage/useSubPackage.html" class="NavigationItem__router-link">
+      分包加载
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/independent-sub-packages.html" class="NavigationItem__router-link">
+      独立分包
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/code-beta.html" class="NavigationItem__router-link">
+      游戏灰度
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/workers.html" class="NavigationItem__router-link">
+      多线程Worker
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/workers.html" class="NavigationItem__router-link">
+      多线程 Worker
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/new-worker.html" class="NavigationItem__router-link">
+      多线程Worker V2
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/background-fetch.html" class="NavigationItem__router-link">
+      预加载
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/background-fetch.html" class="NavigationItem__router-link">
+      周期性更新
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/pre-fetch.html" class="NavigationItem__router-link">
+      数据预拉取
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/backend-api.html" class="NavigationItem__router-link">
+      服务端 API
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/plugins.html" class="NavigationItem__router-link">
+      小游戏插件
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/plugins.html" class="NavigationItem__router-link">
+      小游戏插件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/base-ability/game-engine-plugin.html" class="NavigationItem__router-link">
+      游戏引擎插件
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/login.html" class="NavigationItem__router-link">
+      开放能力
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/login.html" class="NavigationItem__router-link">
+      用户信息
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/login.html" class="NavigationItem__router-link">
+      登录态管理
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/privacy.html" class="NavigationItem__router-link">
+      用户隐私保护
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/union-id.html" class="NavigationItem__router-link">
+      UnionID 机制说明
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/user-info.html" class="NavigationItem__router-link">
+      用户信息获取
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/getPhoneNumber.html" class="NavigationItem__router-link">
+      手机号快速验证组件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/getRealtimePhoneNumber.html" class="NavigationItem__router-link">
+      手机号实时验证组件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/signature.html" class="NavigationItem__router-link">
+      开放数据校验与解密
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/virtual-payment2.html" class="NavigationItem__router-link">
+      虚拟支付
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/virtual-payment2.html" class="NavigationItem__router-link">
+      虚拟支付进件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/guide.html" class="NavigationItem__router-link">
+      技术手册-虚拟支付篇
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/coins.html" class="NavigationItem__router-link">
+      游戏币能力
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/goods.html" class="NavigationItem__router-link">
+      道具直购能力
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/message-push.html" class="NavigationItem__router-link">
+      消息推送
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/virtual-payment/event.html" class="NavigationItem__router-link">
+      支付类事件订阅
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/ad.html" class="NavigationItem__router-link">
+      广告
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/banner-ad.html" class="NavigationItem__router-link">
+      Banner 广告
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/rewarded-video-ad.html" class="NavigationItem__router-link">
+      激励视频广告
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/interstitialAd-ad.html" class="NavigationItem__router-link">
+      插屏广告
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/custom-ad.html" class="NavigationItem__router-link">
+      原生模板广告
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/ad-data-interface.html" class="NavigationItem__router-link">
+      广告数据接口
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/adq.html" class="NavigationItem__router-link">
+      流量主广告金
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ad/iaa.html" class="NavigationItem__router-link">
+      IAA预测组件
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/data-analysis.html" class="NavigationItem__router-link">
+      数据分析
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-server.html" class="NavigationItem__router-link">
+      游戏服务
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/voip-chat.html" class="NavigationItem__router-link">
+      实时语音
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-recorder.html" class="NavigationItem__router-link">
+      游戏对局回放
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/lock-step.html" class="NavigationItem__router-link">
+      帧同步
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/roomservice.html" class="NavigationItem__router-link">
+      房间服务
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/user-status.html" class="NavigationItem__router-link">
+      状态服务
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/gamematch.html" class="NavigationItem__router-link">
+      对局匹配
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/storage-server/storage-score.html" class="NavigationItem__router-link">
+      存档服务
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/storage-server/storage-score.html" class="NavigationItem__router-link">
+      得分存储
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/share.html" class="NavigationItem__router-link">
+      社交互动
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/share.html" class="NavigationItem__router-link">
+      转发分享
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/share.html" class="NavigationItem__router-link">
+      转发
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share-timeline_game.html" class="NavigationItem__router-link">
+      分享到朋友圈
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/share-image.html" class="NavigationItem__router-link">
+      海报分享
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/updatable-message.html" class="NavigationItem__router-link">
+      动态消息
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share-to-specific-friend.html" class="NavigationItem__router-link">
+      定向分享
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share/private-message.html" class="NavigationItem__router-link">
+      小程序私密消息
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/open-data.html" class="NavigationItem__router-link">
+      关系链
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/open-data.html" class="NavigationItem__router-link">
+      关系链数据
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/interactive-data.html" class="NavigationItem__router-link">
+      关系链互动数据
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/opendata/basic.html" class="NavigationItem__router-link">
+      开放数据域
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game_Interaction_Information.html" class="NavigationItem__router-link">
+      游戏互动信息
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/tournament.html" class="NavigationItem__router-link">
+      擂台赛组件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/WeChatGift.html" class="NavigationItem__router-link">
+      微信礼物
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/share-gift.html" class="NavigationItem__router-link">
+      给朋友送道具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/chat-tool.html" class="NavigationItem__router-link">
+      聊天工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ranklist.html" class="NavigationItem__router-link">
+      排行榜
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-chat.html" class="NavigationItem__router-link">
+      社交组件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/RewardSend.html" class="NavigationItem__router-link">
+      社交玩法激励
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/customer-message.html" class="NavigationItem__router-link">
+      游戏运营
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/customer-message.html" class="NavigationItem__router-link">
+      客服消息
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/customer-message.html" class="NavigationItem__router-link">
+      概述
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/receive.html" class="NavigationItem__router-link">
+      接收消息和事件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/send.html" class="NavigationItem__router-link">
+      发送客服消息
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/trans.html" class="NavigationItem__router-link">
+      转发客服消息
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/typing.html" class="NavigationItem__router-link">
+      客服输入状态
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/customer-message/temp-media.html" class="NavigationItem__router-link">
+      临时素材
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/subscribe-message.html" class="NavigationItem__router-link">
+      订阅消息
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/subscribe-message.html" class="NavigationItem__router-link">
+      一次性订阅消息
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/subscribe-system-message.html" class="NavigationItem__router-link">
+      关系链互动提醒
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/subscribe-update-notification-message.html" class="NavigationItem__router-link">
+      游戏更新提醒
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-evaluate.html" class="NavigationItem__router-link">
+      评价与推荐
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-gift.html" class="NavigationItem__router-link">
+      礼包道具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/custom-task.html" class="NavigationItem__router-link">
+      游戏自定义任务
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/cps-recommend.html" class="NavigationItem__router-link">
+      小游戏CPS推荐组件
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/commercialization/recall-user.html" class="NavigationItem__router-link">
+      商业化运营组件
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/commercialization/recall-user.html" class="NavigationItem__router-link">
+      流失用户召回
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-club.html" class="NavigationItem__router-link">
+      内容运营
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-club.html" class="NavigationItem__router-link">
+      游戏圈
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-club.html" class="NavigationItem__router-link">
+      圈子
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-recommend.html" class="NavigationItem__router-link">
+      推送能力
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/game-content.html" class="NavigationItem__router-link">
+      内容规范
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/channels-activity.html" class="NavigationItem__router-link">
+      视频号
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/channels-profile.html" class="NavigationItem__router-link">
+      视频号主页
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/channels-activity.html" class="NavigationItem__router-link">
+      视频号视频
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/channels-live.html" class="NavigationItem__router-link">
+      视频号直播
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/channels-event.html" class="NavigationItem__router-link">
+      视频号活动
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/guide.html" class="NavigationItem__router-link">
+      小游戏试玩
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/guide.html" class="NavigationItem__router-link">
+      概览
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/manage.html" class="NavigationItem__router-link">
+      能力开通
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/dev.html" class="NavigationItem__router-link">
+      研发指南
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/api.html" class="NavigationItem__router-link">
+      开放能力
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/QA.html" class="NavigationItem__router-link">
+      QA
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/playable/ad.html" class="NavigationItem__router-link">
+      试玩广告
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/url-scheme.html" class="NavigationItem__router-link">
+      获取小游戏链接
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/url-scheme.html" class="NavigationItem__router-link">
+      获取 URL Scheme
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/url-link.html" class="NavigationItem__router-link">
+      获取 URL Link
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/qr-code.html" class="NavigationItem__router-link">
+      获取二维码
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/add-desktop.html" class="NavigationItem__router-link">
+      添加到桌面
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/pc-game.html" class="NavigationItem__router-link">
+      多平台适配
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/pc-game.html" class="NavigationItem__router-link">
+      PC接入指南
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/pc-game.html" class="NavigationItem__router-link">
+      PC小游戏接入指南
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/pc-adapter.html" class="NavigationItem__router-link">
+      PC大屏适配指南
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/pc-performance.html" class="NavigationItem__router-link">
+      PC小游戏性能优化
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/ohos.html" class="NavigationItem__router-link">
+      鸿蒙OS适配指南
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/bluetooth.html" class="NavigationItem__router-link">
+      硬件连接
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/bluetooth.html" class="NavigationItem__router-link">
+      蓝牙
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/bluetooth.html" class="NavigationItem__router-link">
+      介绍
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/ble.html" class="NavigationItem__router-link">
+      蓝牙低功耗 (BLE)
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/ble-mesh.html" class="NavigationItem__router-link">
+      蓝牙低功耗网状网络 (BLE Mesh)
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/device/beacon.html" class="NavigationItem__router-link">
+      蓝牙信标 (Beacon)
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html" class="NavigationItem__router-link">
+      安全指南
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#安全原则" class="NavigationItem__router-link">
+      安全原则
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#代码加固2.0" class="NavigationItem__router-link">
+      代码加固2.0
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#代码混淆" class="NavigationItem__router-link">
+      代码混淆
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#代码水印" class="NavigationItem__router-link">
+      代码水印
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#动态保护" class="NavigationItem__router-link">
+      动态保护
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#体积与性能开销" class="NavigationItem__router-link">
+      体积与性能开销
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#如何使用" class="NavigationItem__router-link">
+      如何使用
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#游戏内容安全" class="NavigationItem__router-link">
+      游戏内容安全
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#文本内容安全" class="NavigationItem__router-link">
+      文本内容安全
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#图片内容安全" class="NavigationItem__router-link">
+      图片内容安全
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#音频内容安全" class="NavigationItem__router-link">
+      音频内容安全
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#常见问题" class="NavigationItem__router-link">
+      常见问题
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#游戏反外挂" class="NavigationItem__router-link">
+      游戏反外挂
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#协议挂对抗" class="NavigationItem__router-link">
+      协议挂对抗
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#后台安全风险" class="NavigationItem__router-link">
+      后台安全风险
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#加密网络通道" class="NavigationItem__router-link">
+      加密网络通道
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#内存挂对抗" class="NavigationItem__router-link">
+      内存挂对抗
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#内存数值校验" class="NavigationItem__router-link">
+      内存数值校验
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#内存数值隐藏" class="NavigationItem__router-link">
+      内存数值隐藏
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#重打包外挂对抗" class="NavigationItem__router-link">
+      重打包外挂对抗
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/security.html#代码防注入" class="NavigationItem__router-link">
+      代码防注入
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/security/antiadcheat.html" class="NavigationItem__router-link">
+      激励广告反作弊
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/open-ability/security.html" class="NavigationItem__router-link">
+      安全风控
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-1"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-overview.html" class="NavigationItem__router-link">
+      性能优化
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-overview.html" class="NavigationItem__router-link">
+      概述
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-technical-manual.html" class="NavigationItem__router-link">
+      技术手册
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-mesure.html" class="NavigationItem__router-link">
+      评测标准
+    <!----></a> <!----> <!----></span></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-system-overview.html" class="NavigationItem__router-link">
+      研发工具箱
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-system-overview.html" class="NavigationItem__router-link">
+      性能监控系统
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-system-overview.html" class="NavigationItem__router-link">
+      系统介绍
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-system-rating-rule.html" class="NavigationItem__router-link">
+      指标与评分方法
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-audit-tool.html" class="NavigationItem__router-link">
+      性能诊断工具
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-audit-tool.html" class="NavigationItem__router-link">
+      工具介绍
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-audit-rating-rule.html" class="NavigationItem__router-link">
+      工具评分方法
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-3"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-audit-alarm.html" class="NavigationItem__router-link">
+      告警工具
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-audit/perf-audit-alarm.html" class="NavigationItem__router-link">
+      工具使用方法
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start.html" class="NavigationItem__router-link">
+      启动性能
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start.html" class="NavigationItem__router-link">
+      启动时序与关键指标
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start2.html" class="NavigationItem__router-link">
+      如何提升启动速度
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start-loading-plugin.html" class="NavigationItem__router-link">
+      封面图插件
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start-parallel-download.html" class="NavigationItem__router-link">
+      并行下载能力
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-start-reportScene.html" class="NavigationItem__router-link">
+      启动场景上报分析
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-runtime-overview.html" class="NavigationItem__router-link">
+      运行性能
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-runtime-overview.html" class="NavigationItem__router-link">
+      概述
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-memory-overview.html" class="NavigationItem__router-link">
+      内存调优
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-memory-dev-profile.html" class="NavigationItem__router-link">
+      开发阶段内存调优
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-memory-cloud-profile.html" class="NavigationItem__router-link">
+      使用云测服务检测内存
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-texture-compression.html" class="NavigationItem__router-link">
+      资源纹理压缩
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-memory-gc.html" class="NavigationItem__router-link">
+      垃圾回收
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-memory-management.html" class="NavigationItem__router-link">
+      内存管理机制
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-render-bind.html" class="NavigationItem__router-link">
+      混合渲染模式
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-cpu-worker.html" class="NavigationItem__router-link">
+      使用Worker异步计算
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-benchmarkLevel.html" class="NavigationItem__router-link">
+      设备档型下的用户分布
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-webassembly.html" class="NavigationItem__router-link">
+      使用WXWebAssembly
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-high-performance.html" class="NavigationItem__router-link">
+      高性能模式
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-high-performance-plus.html" class="NavigationItem__router-link">
+      高性能+模式
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-emscriptenglx.html" class="NavigationItem__router-link">
+      EmscriptenGLX
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/diskspace.html" class="NavigationItem__router-link">
+      空间提升
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-ios-metal.html" class="NavigationItem__router-link">
+      iOSMetal
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/power-saving-mode.html" class="NavigationItem__router-link">
+      温控模式
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><div class="NavigationLevel NavigationLevel--closed NavigationLevel--level-2"><div class="NavigationLevel__parent"><span class="NavigationToggle NavigationToggle--closed"><span class="NavigationToggle__icon NavigationToggle__icon--closed"></span></span> <span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/debug.html" class="NavigationItem__router-link">
+      性能调优工具
+    <!----></a> <!----> <!----></span></div> <ul class="NavigationLevel__children"><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/debug.html" class="NavigationItem__router-link">
+      线上异常问题排查
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-action-device-monitor.html" class="NavigationItem__router-link">
+      真机性能监控工具
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-tools-cloudtest.html" class="NavigationItem__router-link">
+      小游戏云测试
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/monitor.html" class="NavigationItem__router-link">
+      异常分析与监控
+    <!----></a> <!----> <!----></span></li></ul></div></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/perf-network.html" class="NavigationItem__router-link">
+      网络调优
+    <!----></a> <!----> <!----></span></li><li><span class="NavigationItem"><!----> <a href="/minigame/dev/guide/performance/weak-network.html" class="NavigationItem__router-link">
+      弱网体验优化
+    <!----></a> <!----> <!----></span></li></ul></div></li></ul></div></div> </aside></div> <div class="page__wrp"><main class="page"><div class="page-inner" style="min-height:0px;"> <div id="docContent"><div class="Breadcrumb"></div> <div class="content custom"><h1 id="Unity-游戏接入微信小游戏指南"><a href="#Unity-游戏接入微信小游戏指南" class="header-anchor">#</a> Unity 游戏接入微信小游戏指南</h1> <p>​		下图中介绍了新游戏接入微信小游戏平台的主要转换流程，下文将介绍每一个阶段的工作：</p> <img src="https://res8.wxqcloud.qq.com.cn/wxdoc/e81581dd-9a70-4589-87cd-91f8e5471ad3.png" alt="Unity快适配调优指南"> <ul><li>【阶段一】兼容性评估：初步确认技术方案是否符合游戏项目</li> <li>【阶段二】项目转换：可体验的WebGL、小游戏项目</li> <li>【阶段三】微信平台能力接入：接入更多平台能力</li> <li>【阶段四】体验调优：达到可上线标准的小游戏体验</li> <li>【阶段五】发布上线与现网监控：上线后的问题排查与分析</li></ul> <h2 id="【阶段一】兼容性评估"><a href="#【阶段一】兼容性评估" class="header-anchor">#</a> 【阶段一】兼容性评估</h2> <blockquote><p>相关手册：<a href="Evaluation" target="_blank">兼容性评估</a> 、<a href="UnityVersion" target="_blank">推荐引擎版本</a>、<a href="ShowCase" target="_blank">更多小游戏成功转换案例</a> 、<a href="DevelopmentQAList" target="_blank">技术常见问题QA</a></p></blockquote> <p>​		新计划接入游戏的开发者应阅读本节相关手册内容，参考已转化的案例游戏并结合自身游戏情况评估转化的可行性。</p> <h2 id="【阶段二】项目转换"><a href="#【阶段二】项目转换" class="header-anchor">#</a> 【阶段二】项目转换</h2> <p>​		本节内容将指引开发者如何让自己的游戏工程在微信小游戏平台成功运行。</p> <h3 id="快速开始——转换工具导出微信小游戏"><a href="#快速开始——转换工具导出微信小游戏" class="header-anchor">#</a> 快速开始——转换工具导出微信小游戏</h3> <blockquote><p>相关下载： <a href="https://game.weixin.qq.com/cgi-bin/gamewxagwasmsplitwap/getunityplugininfo?download=1" target="_blank">微信 Unity 插件下载</a></p> <p>相关手册：<a href="Transform" target="_blank">快速开始：转换工具导出微信小游戏</a></p></blockquote> <p>​		阅读 <strong>快速开始：转换工具导出微信小游戏</strong> 快速熟悉工具的使用并完成一次简单的转化工作！</p> <h3 id="资源按需加载"><a href="#资源按需加载" class="header-anchor">#</a> 资源按需加载</h3> <blockquote><p>相关手册：<a href="ResourcesLoading" target="_blank">资源按需加载概述</a> 、<a href="UsingAddressable" target="_blank">AA(Addressable) 进行资源按需加载</a> 、 <a href="UsingAssetBundle" target="_blank">AB(AssetBundle)进行资源按需加载</a> 、<a href="InstantGameGuide" target="_blank">Instant Game 实践指南</a></p></blockquote> <p>​		区别于原生 APP 游戏很少考虑场景内的资源规划问题，开发时通常将资源在游戏启动时全加载到内存中，而小游戏需要做到“即点即玩”，影响游戏的呈现速度因素中如首资源包的下载往往占比较大，因此需要根据场景中的主次内容进行资源上的优化分包处理。有关分包策略可参阅 <strong>资源按需加载概述</strong> 选择符合当前游戏的方案，具体实施可阅读具体指引文档。</p> <h3 id="后端-网络通信适配"><a href="#后端-网络通信适配" class="header-anchor">#</a> 后端/网络通信适配</h3> <blockquote><p>相关手册：<a href="BackendServiceStartup" target="_blank">后端服务指引</a> 、<a href="UsingNetworking" target="_blank">网络通信适配</a></p></blockquote> <p>​		区别于原生环境，WebGL模式（JavaScript环境）是不支持使用原生套接字（Socket）实现网络通信。对于游戏中使用到网络请求的操作，需要进行相应的适配。将 HTTP 请求使用 UnityWebRequest 类实现，全双工通信改用 WebSocket 协议实现，可参考手册案例完成适配。</p> <h3 id="资源服务器部署配置"><a href="#资源服务器部署配置" class="header-anchor">#</a> 资源服务器部署配置</h3> <blockquote><p>相关手册：<a href="DataCDN" target="_blank">资源部署与缓存</a> 、<a href="FileCache" target="_blank">资源缓存</a> 、<a href="iOSOptimization" target="_blank">iOS高性能模式</a></p></blockquote> <p>​		游戏导出小游戏包(/minigame)将使用微信开发者工具打开，而资源目录(/webgl 或 /webgl-min)需要上传至开发者的 CDN 服务器中，并前往 MP 后台配置安全域名白名单，对于进一步提升 iOS 下的游戏运行效率可前往 MP 申请 <strong>iOS 高性能模式</strong>，请阅读相关手册完成相应的部署。</p> <h3 id="开发阶段的错误排查"><a href="#开发阶段的错误排查" class="header-anchor">#</a> 开发阶段的错误排查</h3> <blockquote><p>相关手册：<a href="DebugAndException" target="_blank">开发错误调试与排查</a></p></blockquote> <p>小游戏存在开发者工具、真机(Android/iOS/PC Windows)，当游戏出现异常时可通过日志进行错误堆栈分析。</p> <h2 id="【阶段三】微信平台能力接入"><a href="#【阶段三】微信平台能力接入" class="header-anchor">#</a> 【阶段三】微信平台能力接入</h2> <h3 id="接入微信API"><a href="#接入微信API" class="header-anchor">#</a> 接入微信API</h3> <blockquote><p>相关手册：<a href="WX_SDK" target="_blank">WX SDK 平台能力适配</a> 、<a href="fixScreen" target="_blank">屏幕适配</a> 、 <a href="InputAdaptation" target="_blank">输入法适配</a> 、 <a href="OpenData" target="_blank">排行榜与微信关系数据</a></p></blockquote> <p>​		Unity 游戏接入微信小游戏平台将获得微信提供的 API 以及开放能力，开发者根据需要进行按需接入。微信 API 支持的能力包括登录、设备（存储、震动）、开放数据、广告等等。</p> <h3 id="启动留存数据上报统计"><a href="#启动留存数据上报统计" class="header-anchor">#</a> 启动留存数据上报统计</h3> <blockquote><p>相关手册：<a href="ReportStartupStat" target="_blank">启动留存数据上报统计</a></p></blockquote> <p>​		在小游戏中玩家对启动时长与体验十分敏感（尤其从“广告”等买量场景进入的玩家），因此需要在必要的位置进行相关的数据上报，<a href="UsingLoader" target="_blank">Unity Loader 插件</a>为游戏提供了一些基础上报数据，但游戏内部关键帧位置仍需要开发者自行上报，可参阅相关手册完成上报配置。</p> <h2 id="【阶段四】体验调优"><a href="#【阶段四】体验调优" class="header-anchor">#</a> 【阶段四】体验调优</h2> <p>​		截止本阶段，开发者的 Unity 游戏将在微信小游戏平台成功启动运行，但为了能够达到更佳的游戏体验开发者应继续进行对游戏工程的调优工作，本节将介绍目前微信小游戏平台为开发者提供的调优能力完成上线前的最后优化工作。</p> <h3 id="首场景启动优化——首帧逻辑优化"><a href="#首场景启动优化——首帧逻辑优化" class="header-anchor">#</a> 首场景启动优化——首帧逻辑优化</h3> <blockquote><p>相关手册：<a href="StartupOptimization" target="_blank">提升Unity WebGL游戏启动速度</a> 、<a href="Startup" target="_blank">启动流程与时时序</a> 、 <a href="FirstSceneOptimization" target="_blank">首场景启动优化</a></p></blockquote> <p>​		根据统计数据反应，小游戏玩家对于游戏的启动时长是较为敏感的，过长的启动时间会导致用户的显著流失，因此如何快速呈现游戏场景是 Unity 原生 APP 游戏接入微信小游戏平台的一个重点优化的工作。首场景启动优化的并不是一个简单的步骤就可以完全优化，在初始 Unity 工程时开发者应主要对游戏代码如首帧逻辑进行修改，具体可参阅首场景启动优化手册。</p> <h3 id="资源预下载"><a href="#资源预下载" class="header-anchor">#</a> 资源预下载</h3> <blockquote><p>相关手册：<a href="UsingPreload" target="_blank">使用预下载功能</a></p></blockquote> <p>​		在 UnityLoader 加载过程中是存在CPU处理密集而 <strong>网络空闲</strong> 的情况，因此可以充分利用该时机进行一些必要的资源下载可有助于提升游戏场景等资源的载入速度。</p> <h3 id="运行性能及调优"><a href="#运行性能及调优" class="header-anchor">#</a> 运行性能及调优</h3> <blockquote><p>相关手册：<a href="OptimizationPerformence" target="_blank">优化Unity WebGL的运行性能</a>、<a href="AndroidProfile" target="_blank">使用 Android CPU Profiler 性能调优</a>、<a href="UnityProfiler" target="_blank">使用 Unity Profiler 性能调优</a>、<a href="OptimizationMemory" target="_blank">优化 Unity WebGL 内存</a></p></blockquote> <p>​		游戏转化完成后仍需要对各项的性能指标进行量化测试。</p> <h3 id="压缩纹理资源"><a href="#压缩纹理资源" class="header-anchor">#</a> 压缩纹理资源</h3> <blockquote><p>相关手册： <a href="CompressedTexture" target="_blank">压缩纹理优化</a></p></blockquote> <p>​		压缩纹理工具是微信SDK提供的一种能够根据不同的游戏运行平台而按需加载压缩后纹理资源的能力。它的优点是：</p> <ul><li><strong>增快游戏运行进度</strong>：纹理资源从 bundle 内分离后按渲染需要进行后续加载，有效减少 bundle 体积，增快游戏的运行进度；</li> <li><strong>减少内存占用，GPU硬解纹理渲染更快</strong>： 分离的资源被压缩成多种格式的纹理资源在 CDN 中存储，客户端根据硬件 GPU 支持的格式按需下载渲染，体积更小，渲染速度更快。</li></ul> <p>​		纹理压缩对于 <strong>提升运行速度</strong> 与 <strong>减少内存</strong> 的优化方面均有不错的表现效果，对于重度游戏而言，均建议进行该优化。</p> <h3 id="WASM代码分包"><a href="#WASM代码分包" class="header-anchor">#</a> WASM代码分包</h3> <blockquote><p>相关手册：<a href="WasmSplit" target="_blank">使用代码分包工具</a></p></blockquote> <p>​		Unity 导出小游戏项目后代码将存储在 wasm 文件中，而游戏启动时需要完整的 wasm 文件才可以运行，于是微信小游戏提供了WASM代码分包能力，将原本的 wasm 文件根据游戏逻辑的主次内容分为 2 个 wasm 文件，一个用于启动加载另一个将被延迟加载，这样就允许先加载较小的首包快速进入主场景。该能力可以有效<strong>降低内存的使用</strong>，以及<strong>减少脚本编译的时间</strong>。</p> <h3 id="封面图配置"><a href="#封面图配置" class="header-anchor">#</a> 封面图配置</h3> <blockquote><p>相关手册：<a href="CustomLoading" target="_blank">启动封面</a></p></blockquote> <p>​		由于 Unity WebGL 的启动加载需要一定的时间，微信小游戏支持通过配置封面图/视频等内容作为加载期间的过渡来留住玩家，微信小游戏支持如下自定义配置项：</p> <ul><li>封面图/视频内容</li> <li>加载文案及样式</li> <li>进度条样式</li> <li>封面自动隐藏时机</li></ul> <h2 id="【阶段五】发布上线与现网监控"><a href="#【阶段五】发布上线与现网监控" class="header-anchor">#</a> 【阶段五】发布上线与现网监控</h2> <p>​		审核发布可参考 MP 文档 <a href="Guide" target="_blank">小游戏接入指南</a> 自助完成，游戏相关运行数据请前往 <a href="https://mp.weixin.qq.com/" target="_blank">微信公众平台</a>。</p> <p>​		<a href="IssueForProduction" target="_blank">现网错误日志上报与排查</a></p></div> <div class="fixed-translate" style="display:none;"><span>The translations are provided by WeChat Translation and are for reference only. In case of any inconsistency and discrepancy between the Chinese version and the English version, the Chinese version shall prevail.Incorrect translation. <a href="javascript:;" class="fixed-translate-btn">Tap to report.</a></span></div></div> <!----> <div class="related"><!----> <!----></div> <footer class="page-edit"><!----></footer>  <footer class="footer"><ul class="footer-links"><li class="footer-link"><a href="http://www.tencent.com/zh-cn/index.shtml" target="_blank">关于腾讯</a></li> <li class="footer-link"><a href="https://mp.weixin.qq.com/debug/wxadoc/introduction/index.html?t=1484641676" target="_blank">文档中心</a></li> <li class="footer-link"><a href="https://kf.qq.com/faq/17030722muuu170307MFBny2.html" target="_blank">辟谣中心</a></li> <li class="footer-link"><a href="http://kf.qq.com/faq/120911VrYVrA1509086vyumm.html" target="_blank">客服中心</a></li></ul> <p class="copyright">Copyright © 2012-<span>2026</span> Tencent. All Rights Reserved.</p></footer></div></main></div> <!----></div></div> <div id="popoverWrapId" class="pop-links__wrp popover_hide"><ul class="pop-links__list"><li class="pop-links__item"><button class="pop-link">复制</button></li> <li class="pop-links__item"><button class="pop-link">问题反馈</button></li></ul></div> <div class="fixed-btns"><div class="fixed-btn fixed-btn__minigame"><div class="fixed-btn__inner"><span class="fixed-btn__icon"></span></div> <div class="fixed-hover"><div class="fixed-hover__image"></div> <span class="fixed-hover__text">点击咨询小助手</span></div></div> <a href="javascript:;" class="fixed-btn fixed-btn__top" style="display:none;"><div class="fixed-btn__inner"><span class="fixed-btn__icon"></span></div></a></div></div></div></div>
+    <script src="https://res.wx.qq.com/wxdoc/dist/assets/js/app.1a44f719.js" defer></script><script src="https://res.wx.qq.com/wxdoc/dist/assets/js/1932.c906aaf8.js" defer></script>
+  </body>
+</html>

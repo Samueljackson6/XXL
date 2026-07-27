@@ -1,2 +1,6 @@
 allowBuilds:
+  # core-js@2.6.12 is a deprecated transitive dep whose postinstall we intentionally skip.
+  # Setting false (deny) removes it from the "ignored build scripts" error path so every
+  # install — local, pnpm auto-install (verify-deps-before-run), and CI --frozen-lockfile — is clean.
+  core-js: false
   esbuild: true

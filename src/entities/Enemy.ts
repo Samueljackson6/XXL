@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { ENEMY_TYPES } from '../utils/config';
+import { ENEMY_TYPES, DEPTH } from '../utils/config';
 
 export type EnemyType = keyof typeof ENEMY_TYPES;
 
@@ -29,6 +29,7 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     this.createVisuals();
     scene.add.existing(this);
+    this.setDepth(DEPTH.ENEMIES);
   }
 
   private createVisuals(): void {
@@ -47,9 +48,11 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applySlow(duration: number, factor: number): void {
-    this.slowFactor = factor;
-    this.slowTimer = duration;
-    this.sprite.setTint(0x81d4fa);
+    if (factor < this.slowFactor) {
+      this.slowFactor = factor;
+      this.slowTimer = duration;
+      this.sprite.setTint(0x81d4fa);
+    }
   }
 
   updateHpBar(): void {

@@ -39,3 +39,31 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# WeChat credentials (NEVER commit)
+.wechat-config.json
+
+# Cocos Creator / WeChat build artifacts (regenerated on every build; excluded from VCS)
+library/
+build/
+temp/
+Build/
+dist/
+
+# Agent / tooling private config (never commit)
+.workbuddy/
+.agents/
+.opencode/
+.mcp.json
+
+# Cloned + compiled Cocos MCP extension (keep local; set up per project memory)
+extensions/cocos-mcp-server/
+
+# Heavy third-party toolchain (binaryen wasm-opt, ~700MB) — keep local, not in VCS
+tools/
+
+# Generated logs & local artifacts
+export-log.txt
+test-results/
+tests/smoke/console_evidence/
+deploy/

@@ -1,63 +1,59 @@
 # XXL Tower Defense
 
-微信小游戏竖屏塔防。Phaser 3.80.1 + TypeScript strict + Vite。400×700 视口，6×10 网格，30 波敌人，3 种防御塔。
+微信小游戏竖屏塔防。运行时由 **Cocos Creator 3.8.8** 构建为微信小游戏（`platform=wechatgame`）。游戏逻辑全部用 TypeScript（严格模式）编写，类型来自 `@cocos/creator-types`。400×700 视口，6×10 网格，30 波敌人，3 种防御塔（箭 / 炮 / 减速）。
+
+> **引擎说明（重要）**：游戏的唯一构建来源是 `assets/scripts/` + `assets/scenes/`。
+> - `src/` 是**已归档的 Phaser 旧实现（legacy）**，不再参与构建，仅作参考。
+> - `minigame-unity-legacy/`（及历史上的 Unity/团结引擎导出）是更早的方案残留，亦不参与构建。
+> - `build/wechatgame/` 是 Cocos 构建产物输出目录（由 `scripts/build-cocos.mjs` 生成），不要手工编辑。
 
 ## 原则
 
-- **零 DOM**：所有 UI（HUD、塔选择栏、信息面板、浮动文字）必须用 Phaser Game Objects。禁止 `document.*`、`window.*`（main.ts 的 Phaser 初始化除外）。
-- **配置驱动**：所有数值集中在 `src/utils/config.ts`，无魔法数字。
+- **零 DOM**：游戏内 UI 全部用 Cocos 节点 / 组件实现；禁止 `document.*`、`window.*`（微信适配层除外）。
+- **配置驱动**：所有数值集中在 `assets/scripts/utils/GameConfig.ts`，无魔法数字。
 - **严格模式**：TS strict 永开，禁止 `any`。
-- **职责单一**：GameScene ≤ 200 行，仅做协调。系统类自包含数据。
+- **职责单一**：GameScene 仅做协调，系统类自包含数据。
 
-## 约束
+## 约束（微信小游戏）
 
-- 微信小游戏：包体 < 4MB（目标 < 2MB）、RAM < 256MB、纯触摸、无浏览器 API
-- 所有资产 < 100KB（PNG-8 精灵图）
-- 触摸热区 ≥ 44×44px
-- 字体仅用 Arial/sans-serif
+- 首包 < 4MB（目标 < 2MB）、总 RAM < 256MB、纯触摸、WebGL 1.0
+- 单资产 < 100KB（PNG-8 精灵图）、触摸热区 ≥ 44×44px
+- 字体仅 Arial / sans-serif；无浏览器 API 依赖
 
 ## 命令
 
 ```bash
-pnpm dev           # 浏览器开发服务器 :5173
-pnpm build         # 浏览器构建
-pnpm build:mp      # 微信小游戏构建
-pnpm lint          # ESLint
-pnpm format        # Prettier
-pnpm typecheck     # TS 类型检查
-pnpm test          # Vitest
-pnpm test:watch    # Vitest 监听模式
+pnpm test            # Vitest 单元测试（tests/）
+pnpm lint            # ESLint assets/scripts/**/*.ts
+pnpm typecheck       # tsc --noEmit
+pnpm verify          # test + typecheck
+pnpm build:cocos     # Cocos Creator CLI 构建微信小游戏 → build/wechatgame
+pnpm deploy          # 构建 + 启动微信开发者工具(auto-port) + 自动编译，用于试玩
 ```
 
-## 架构
+## 架构（Cocos Creator）
 
 ```
-src/
-  scenes/       — Phaser Scene 子类
-  entities/     — Phaser Container 子类（塔、敌人、投射物）
-  systems/      — 纯逻辑类（波次、经济、网格）
-  ui/           — Phaser UI 组件
-  utils/        — 配置、工具函数
-  audio/        — 音频管理
-  fx/           — 特效（浮动文字、对象池）
+assets/
+  scripts/
+    core/        — GameBootstrap, GameScene（协调）
+    entities/    — Enemy / Tower / Projectile / Path（Cocos Component）
+    systems/     — Economy / Grid / WaveManager（纯逻辑）
+    ui/          — HUD / TowerInfoPanel / TowerSelectBar
+    fx/          — FloatingText
+    audio/       — AudioManager
+    utils/       — GameConfig（集中配置）
+  scenes/        — GameScene.scene（launchScene）
+  textures/ resources/ prefabs/
 ```
 
-## 测试
+## 构建与发布
 
-- **单元测试**：`pnpm test` 运行 Vitest（tests/unit/），覆盖 Grid/Path/Economy/WaveManager 等纯逻辑模块
-- **E2E 测试**：`pnpm exec playwright test` 运行 Playwright（tests/e2e/），覆盖浏览器端交互流程
+- **构建**：`scripts/build-cocos.mjs` 调用 `G:/Game tools/CocosCreator/CocosCreator.exe --project . --build platform=wechatgame`，产物在 `build/wechatgame`。
+- **发布试玩**：`scripts/deploy-wechat.mjs` 先构建，再用微信开发者工具 CLI（`D:/DevCache/微信web开发者工具/cli.bat auto --project build/wechatgame --auto-port 5000 --trust-project`）打开，并通过 `miniprogram-automator` 自动编译。
+- ⚠️ `project.json` 中 `APPID` 当前为空：本地试玩可用 DevTools 测试号模式；**上传体验版 / 提交审核需填入真实 AppID**。
 
-## 已知问题
+## 已知问题 / 待清理（历史遗留，非构建链路）
 
-- 显示层级乱（敌人/面板/塔渲染顺序需用 depth 管理）
-- 部分游戏逻辑仍有问题待验证
-
-## 实施计划
-
-按 4 个 Phase 递进：
-- Phase 1：修复 3 个阻断 Bug + 配置对齐 + 投射物追踪 + 炮塔 AOE ✅
-- Phase 2：纯 Phaser UI 重构 + 状态机 + 经济奖励 + HUD 重写 ✅
-- Phase 3：塔信息面板 + 浮动文字 + 对象池 + 音频 ✅
-- Phase 4：微信构建 + 触摸优化 + 存档 + 性能 🔄（进行中）
-
-详见 `docs/game-design-doc-v1.2.md`（最终设计规范）。
+- `src/`（Phaser）与 `minigame-unity-legacy/`（Unity）为历史方案残留，建议归档或删除，避免混淆。
+- 旧辅助脚本（`scripts/*.cjs`、`build-unity.mjs`、`vite.config.ts`、`dist/`）属前代方案；当前有效链路仅 `build-cocos.mjs` / `deploy-wechat.mjs`。

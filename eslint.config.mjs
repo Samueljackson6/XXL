@@ -10,6 +10,7 @@ export default [
       globals: {
         window: 'readonly',
         document: 'readonly',
+        localStorage: 'readonly',
         HTMLElement: 'readonly',
         AudioContext: 'readonly',
         setTimeout: 'readonly',

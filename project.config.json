@@ -1,7 +1,18 @@
 {
   "description": "XXL Tower Defense — WeChat Mini Game",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "folder", "value": "node_modules" },
+      { "type": "folder", "value": ".git" },
+      { "type": "folder", "value": "dist" },
+      { "type": "folder", "value": "test-results" },
+      { "type": "file", "value": ".gitignore" },
+      { "type": "file", "value": "pnpm-lock.yaml" },
+      { "type": "file", "value": "package.json" },
+      { "type": "folder", "value": "scripts" },
+      { "type": "folder", "value": "tests" },
+      { "type": "SFile", "value": "game.js.map" }
+    ],
     "include": []
   },
   "setting": {
@@ -40,13 +51,13 @@
       "minified": true
     }
   },
-  "compileType": "miniprogram",
+  "compileType": "game",
   "libVersion": "3.0.0",
-  "appid": "touristappid",
   "projectname": "xxl-tower-defense",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "appid": "wx10c928d3274d2360"
 }

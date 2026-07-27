@@ -12,7 +12,7 @@
  */
 
 import { execSync, spawn } from 'child_process';
-import { existsSync, statSync, readFileSync, writeFileSync, readdirSync } from 'fs';
+import { existsSync, statSync, readFileSync, writeFileSync, readdirSync, rmSync, mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -49,6 +49,29 @@ function main() {
   console.log('║   Cocos Creator → WeChat Mini-Game 构建     ║');
   console.log('╚══════════════════════════════════════════════╝\n');
 
+  // 0. CI 中清空 library/，强制引擎裁剪(engine.json 功能裁剪)重新打包生效
+  //    “裁剪胜利”只在重新打包 library/ 后成立：温/陈旧 library/(约 36MB)会让 Cocos 复用
+  //    旧全量引擎包 → 首包回弹到 3.47MB+。因此 CI 必须清空 library/ 后再构建。
+  //    本地开发不应每次清空（全量重新导入很慢），故仅在 CI=1 或显式 CLEAN_LIBRARY=1 时清空。
+  const cleanLib = process.env.CI === '1' || process.env.CI === 'true' || process.env.CLEAN_LIBRARY === '1';
+  if (cleanLib) {
+    const libDir = resolve(ROOT, 'library');
+    console.log('\n  [CI] 清空 library/ 以强制重新打包引擎裁剪（防止首包回弹到 3.47MB+）...');
+    try {
+      if (existsSync(libDir)) {
+        rmSync(libDir, { recursive: true, force: true });
+        console.log('  ✅ 已清空 library/');
+      } else {
+        console.log('  ℹ️  library/ 不存在，跳过（首次构建）');
+      }
+    } catch (e) {
+      console.error(`  ❌ 清空 library/ 失败: ${e.message}`);
+      process.exit(1);
+    }
+  } else {
+    console.log('\n  ℹ️  本地构建：保留 library/ 缓存（如需强制重打包请设 CI=1 或 CLEAN_LIBRARY=1）');
+  }
+
   // 1. 检查 Cocos Creator 是否存在
   if (!existsSync(COCOS_CREATOR)) {
     console.error(`❌ 未找到 Cocos Creator: ${COCOS_CREATOR}`);
@@ -75,6 +98,7 @@ function main() {
   // 满足 <4MB（目标 <2MB）约束，且引擎仍在启动时加载，无运行时风险。
   const cfg = buildWechatConfig(APPID, OUTPUT_DIR);
   const cfgPath = resolve(ROOT, 'temp', 'wechatgame-build-config.json');
+  mkdirSync(dirname(cfgPath), { recursive: true }); // 确保 temp/ 存在（全新 checkout / CI 下可能缺失）
   writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
   console.log(`  生成构建配置: ${cfgPath}`);
   console.log(`  separateEngine = ${cfg.packages.wechatgame.separateEngine}`);

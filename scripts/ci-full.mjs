@@ -254,8 +254,21 @@ async function main() {
   // (c) 构建
   const build = runNodeScript('[2/4] Cocos Creator 构建', 'build-cocos.mjs');
 
+  // (c.5) 首包体积门禁：构建成功后、部署前断言首包体积，体积回弹尽早失败。
+  //   门禁脚本见 scripts/check-bundle-size.mjs：>2.5MB 失败(退出 1)、>2.0MB 告警(退出 2)、
+  //   其余通过；CI 中任一非 0 出口码都会令本编排失败（见末尾退出码逻辑）。
+  //   构建未成功时无有效产物，跳过门禁以免误导。
+  let sizeGate;
+  if (!build.ok) {
+    console.log('\n━━━ [3/4] 首包体积门禁 (size:gate) ━━━');
+    console.log('  ⚠️  跳过：构建未成功，无有效产物可供门禁');
+    sizeGate = { ok: false, status: 'skipped', skipped: true };
+  } else {
+    sizeGate = runNodeScript('[3/4] 首包体积门禁 (size:gate)', 'check-bundle-size.mjs');
+  }
+
   // (d) 部署 + 控制台采集
-  const deploy = runNodeScript('[3/4] 微信开发者工具部署 + 控制台采集', 'deploy-wechat.mjs');
+  const deploy = runNodeScript('[4/4] 微信开发者工具部署 + 控制台采集', 'deploy-wechat.mjs');
 
   // 汇总
   const summary = readLatestConsoleSummary();
@@ -265,6 +278,10 @@ async function main() {
     return Number.isFinite(n) && n >= 0 ? n : 0;
   })();
   const consoleErrors = summary ? summary.errorCount : null;
+  // 首包体积门禁结果标签：OK / WARN(退出 2，接近目标) / FAIL(退出 1，突破门禁) / SKIP(构建未成功)
+  const sizeGateLabel = sizeGate.skipped
+    ? 'SKIP'
+    : (sizeGate.status === 0 ? 'OK' : (sizeGate.status === 2 ? 'WARN' : 'FAIL'));
   const consoleVerdict = consoleErrors === null
     ? 'n/a (无证据)'
     : (consoleErrors > threshold ? `FAIL (${consoleErrors} > ${threshold})` : `PASS (${consoleErrors} ≤ ${threshold})`);
@@ -275,6 +292,7 @@ async function main() {
   console.log(`║  Editor launched : ${yN(editorLaunched).padEnd(34)}║`);
   console.log(`║  MCP live       : ${yN(mcpLive).padEnd(34)}║`);
   console.log(`║  Build          : ${(build.ok ? 'OK' : 'FAIL').padEnd(34)}║`);
+  console.log(`║  Size gate      : ${sizeGateLabel.padEnd(34)}║`);
   console.log(`║  Deploy         : ${(deploy.ok ? 'OK' : 'FAIL').padEnd(34)}║`);
   console.log(`║  Console errors : ${consoleVerdict.padEnd(34)}║`);
   console.log('╚══════════════════════════════════════════════╝');
@@ -284,6 +302,9 @@ async function main() {
   if (!build.ok || (deploy.status !== 0 && deploy.status !== 2)) exitCode = 1;
   else if (deploy.status === 2) exitCode = 2;
   else if (consoleErrors !== null && consoleErrors > threshold) exitCode = 2;
+  // 首包体积门禁：任意非 0 出口码（含 WARN 退出 2）在 CI 一律升级为失败，
+  // 确保引擎裁剪回弹 / 首包体积增长必然暴露、阻断流程。
+  if (!sizeGate.skipped && sizeGate.status !== 0) exitCode = 1;
 
   process.exit(exitCode);
 }

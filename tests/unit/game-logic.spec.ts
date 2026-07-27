@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { Grid } from '../../src/systems/Grid';
-import { Path } from '../../src/entities/Path';
-import { Economy } from '../../src/systems/Economy';
-import { WAVE_CONFIG } from '../../src/utils/config';
+import { Grid } from '../../assets/scripts/systems/Grid';
+import { Path } from '../../assets/scripts/entities/Path';
+import { Economy } from '../../assets/scripts/systems/Economy';
+import { WAVE_CONFIG, TOWER_TYPES, DEPTH } from '../../assets/scripts/utils/GameConfig';
 
 describe('Grid', () => {
   it('路径格子不可放置', () => {
@@ -13,7 +13,6 @@ describe('Grid', () => {
 
   it('非路径格子可放置', () => {
     const grid = new Grid();
-    // (1,7) 不在任何路径点或其邻居上
     expect(grid.canPlace(1, 7)).toBe(true);
     expect(grid.canPlace(2, 7)).toBe(true);
   });
@@ -30,6 +29,16 @@ describe('Grid', () => {
     expect(grid.canPlace(10, 0)).toBe(false);
     expect(grid.canPlace(0, -1)).toBe(false);
     expect(grid.canPlace(0, 10)).toBe(false);
+  });
+
+  it('网格坐标转换正确', () => {
+    const grid = new Grid();
+    expect(grid.getGridCol(0)).toBe(0);
+    expect(grid.getGridCol(63)).toBe(0);
+    expect(grid.getGridCol(64)).toBe(1);
+    expect(grid.getGridCol(319)).toBe(4);
+    expect(grid.getGridRow(44)).toBe(0);
+    expect(grid.getGridRow(108)).toBe(1);
   });
 });
 
@@ -114,34 +123,26 @@ describe('Economy', () => {
 
 describe('Enemy movement math', () => {
   it('speed * slowFactor * delta 计算距离', () => {
-    // 模拟 basic 敌人: speed=90, slowFactor=1, delta=1s
     expect(90 * 1 * 1).toBe(90);
-    // 被减速后: speed=90, slowFactor=0.5, delta=1s
     expect(90 * 0.5 * 1).toBe(45);
   });
 
   it('slowTimer 衰减正确', () => {
-    // updateSlow 使用 delta * 1000 (ms)
-    const slowTimer = 2000; // 2秒减速
-    const delta = 1; // 1秒
+    const slowTimer = 2000;
+    const delta = 1;
     const newTimer = slowTimer - delta * 1000;
     expect(newTimer).toBe(1000);
-    // 再减 0.5 秒
     expect(newTimer - 500).toBe(500);
   });
 });
 
 describe('WaveManager spawn interval', () => {
   it('spawn interval 随波次递减但有下限', () => {
-    const base = 800;
-    const wave1 = Math.max(200, base - 1 * 15);
-    const wave5 = Math.max(200, base - 5 * 15);
-    const wave10 = Math.max(200, base - 10 * 15);
-    const wave30 = Math.max(200, base - 30 * 15);
-    expect(wave1).toBe(785);
-    expect(wave5).toBe(725);
-    expect(wave10).toBe(650);
-    expect(wave30).toBe(350);
+    const base = WAVE_CONFIG.spawnInterval;
+    expect(Math.max(200, base - 1 * 15)).toBe(785);
+    expect(Math.max(200, base - 5 * 15)).toBe(725);
+    expect(Math.max(200, base - 10 * 15)).toBe(650);
+    expect(Math.max(200, base - 30 * 15)).toBe(350);
   });
 });
 
@@ -154,8 +155,19 @@ describe('Config values', () => {
   });
 
   it('TOWER_TYPES 成本递增', () => {
-    // 从 config.ts 读取
-    expect(50).toBeLessThan(80); // arrow < frost
-    expect(80).toBeLessThan(100); // frost < cannon
+    expect(TOWER_TYPES.arrow.cost).toBeLessThan(TOWER_TYPES.frost.cost);
+    expect(TOWER_TYPES.frost.cost).toBeLessThan(TOWER_TYPES.cannon.cost);
+  });
+
+  it('DEPTH 常量存在且层级递增', () => {
+    expect(DEPTH.GRID).toBe(0);
+    expect(DEPTH.PATH).toBe(1);
+    expect(DEPTH.ENEMIES).toBeGreaterThan(DEPTH.GRID);
+    expect(DEPTH.TOWERS).toBeGreaterThan(DEPTH.ENEMIES);
+    expect(DEPTH.PROJECTILES).toBeGreaterThan(DEPTH.TOWERS);
+    expect(DEPTH.PREVIEW).toBeGreaterThan(DEPTH.PROJECTILES);
+    expect(DEPTH.UI).toBeGreaterThan(DEPTH.PREVIEW);
+    expect(DEPTH.FLOATING_TEXT).toBeGreaterThan(DEPTH.UI);
+    expect(DEPTH.PANEL).toBeGreaterThan(DEPTH.FLOATING_TEXT);
   });
 });
