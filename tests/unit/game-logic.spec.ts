@@ -109,9 +109,10 @@ describe('Economy', () => {
   });
 
   it('波次奖励公式', () => {
-    expect(economy.waveBonus(1)).toBe(35);
-    expect(economy.waveBonus(5)).toBe(55);
-    expect(economy.waveBonus(30)).toBe(180);
+    // GDD §3.4 CANONICAL R1: 30 + 5 × (w−1)；第 1 波仅 base(30)
+    expect(economy.waveBonus(1)).toBe(30);
+    expect(economy.waveBonus(5)).toBe(50);
+    expect(economy.waveBonus(30)).toBe(175);
   });
 
   it('击杀奖励公式', () => {

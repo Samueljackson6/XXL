@@ -51,7 +51,7 @@ export class Projectile extends Component {
 
     this.node.setPosition(this.projX, this.projY, DEPTH.PROJECTILES);
 
-    const transform = this.node.getComponent(UITransform)!;
+    const transform = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
     transform.setContentSize(8, 8);
 
     this.sprite = this.node.addComponent(Sprite);

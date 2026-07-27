@@ -32,7 +32,7 @@ export class WaveManager extends Component {
     this.waveActive = true;
     this.betweenWaves = false;
 
-    const waveMultiplier = 1 + (this.currentWave - 1) * 0.25;
+    const waveMultiplier = Math.min(2.0, 1 + (this.currentWave - 1) * 0.10);
     const baseCount = WAVE_CONFIG.baseCount + this.currentWave * WAVE_CONFIG.countPerWave;
     this.waveEnemiesToSpawn = Math.floor(baseCount * waveMultiplier);
     this.enemiesRemaining = this.waveEnemiesToSpawn;

@@ -46,7 +46,7 @@ const APPID = 'wx10c928d3274d2360';
 const AUTO_PORT = 5000;
 const BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 const DEVTOOLS_TIMEOUT_MS = 150 * 1000;
-const INIT_WAIT_MS = 5000; // 运行时初始化 + console 采集窗口（原为 3s，扩展至 5s 提高捕获率）
+const INIT_WAIT_MS = 25000; // smoke gate 加固：覆盖 prepare 15s + 一波战斗（塔射→弹丸→击杀→浮动文字），确保采集到真实战斗证据而非 false-green
 
 async function main() {
   console.log('╔══════════════════════════════════════════════╗');
@@ -352,6 +352,17 @@ async function autoCompile() {
     const automator = new Automator();
     const mp = await automator.connect({ wsEndpoint: `ws://127.0.0.1:${AUTO_PORT}` });
     console.log('  ✅ 已连接 DevTools');
+
+    // === smoke gate 加固：在微信 runtime 内打开 debug autoplay ===
+    // 注入 globalThis.__XXL_AUTOPLAY__ = true，使 GameScene 在 prepare 阶段自动放塔 + 自动开波，
+    // 真实跑完整战斗循环（敌生成→塔射→弹丸→击杀→浮动文字），让控制台风门禁采集到真实战斗证据，
+    // 杜绝 false-green。生产环境不注入此标志，故生产无影响。
+    try {
+      await mp.evaluate(() => { globalThis.__XXL_AUTOPLAY__ = true; });
+      console.log('  🤖 已开启 debug autoplay（smoke gate 自动战斗）');
+    } catch (e) {
+      console.warn(`  ⚠️  注入 autoplay 标志失败（仍以 0 错误门禁判定）: ${e.message}`);
+    }
 
     const info = await mp.send('Tool.getInfo');
     console.log(`  DevTools v${info.version} | SDK v${info.SDKVersion}`);

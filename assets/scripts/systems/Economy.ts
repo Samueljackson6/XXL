@@ -33,7 +33,7 @@ export class Economy {
   }
 
   waveBonus(wave: number): number {
-    return ECONOMY_CONFIG.waveBonusBase + wave * ECONOMY_CONFIG.waveBonusPerWave;
+    return ECONOMY_CONFIG.waveBonusBase + (wave - 1) * ECONOMY_CONFIG.waveBonusPerWave;
   }
 
   sellValue(baseCost: number, level: number): number {

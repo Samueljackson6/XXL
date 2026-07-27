@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, Color, tween, Vec3 } from 'cc';
+import { _decorator, Component, Node, Sprite, Color, tween, Vec3, UITransform } from 'cc';
 import { EnemyType, ENEMY_TYPES, DEPTH } from '../utils/GameConfig';
 
 const { ccclass, property } = _decorator;
@@ -40,15 +40,17 @@ export class Enemy extends Component {
     this.sprite = this.node.addComponent(Sprite);
     this.sprite.color = Color.hex(config.color);
 
-    const transform = this.node.getComponent(UITransform)!;
+    const transform = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
     transform.setContentSize(24, 24);
 
     this.hpBarBg = new Node('hp_bar_bg');
     this.hpBarBg.setPosition(0, -16, 0);
+    this.hpBarBg.addComponent(UITransform);
     this.hpBarBg.parent = this.node;
 
     this.hpBarFill = new Node('hp_bar_fill');
     this.hpBarFill.setPosition(-10, -16, 0);
+    this.hpBarFill.addComponent(UITransform);
     this.hpBarFill.parent = this.node;
   }
 

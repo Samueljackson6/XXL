@@ -54,6 +54,10 @@ export class GameScene extends Component implements IGameScene {
   private prepareTimer: number = 0;
   private state: 'idle' | 'prepare' | 'fighting' | 'intermission' | 'victory' = 'prepare';
 
+  // Debug autoplay（smoke gate 加固）：仅当 globalThis.__XXL_AUTOPLAY__ 为真时启用，生产不受影响。
+  private autoPlayEnabled: boolean = false;
+  private autoTowerPlaced: boolean = false;
+
   onLoad(): void {
     this.grid = new Grid();
     this.path = new Path();
@@ -76,6 +80,10 @@ export class GameScene extends Component implements IGameScene {
     this.drawPathOverlay();
     this.setupInput();
     this.setupTowerSelect();
+
+    // smoke gate 调试开关：默认 false（生产不受影响）。可由部署脚本在运行时
+    // 通过 globalThis.__XXL_AUTOPLAY__ = true 打开（见 deploy-wechat.mjs）。
+    this.autoPlayEnabled = (globalThis as unknown as { __XXL_AUTOPLAY__?: boolean }).__XXL_AUTOPLAY__ === true;
 
     this.startPreparePhase();
   }
@@ -263,6 +271,13 @@ export class GameScene extends Component implements IGameScene {
 
     if (!this.grid || !this.grid.canPlace(col, row)) return;
 
+    this.placeTowerAt(col, row);
+  }
+
+  // 放置塔的核心逻辑：消费 gold、占格、建节点、并触发 audio + 浮动文字。
+  // onPointerUp（玩家点击）与 debug autoplay（smoke gate 自动放塔）共用同一实现。
+  private placeTowerAt(col: number, row: number): void {
+    if (!this.grid || !this.selectedTowerType) return;
     const config = TOWER_TYPES[this.selectedTowerType];
     if (!this.economy || !this.economy.canAfford(config.cost)) return;
 
@@ -279,6 +294,45 @@ export class GameScene extends Component implements IGameScene {
 
     this.audio?.play('towerPlace');
     this.spawnFloatingText(towerX, towerY, `+${config.cost}`, '#4fc3f7');
+  }
+
+  // === Debug autoplay（smoke gate 加固，由 globalThis.__XXL_AUTOPLAY__ 门控） ===
+  // prepare 阶段自动在路径旁放一座箭塔，使 projectile 真实发射、敌人真实被击杀，
+  // 从而让部署冒烟门禁能采集到战斗证据（towerPlace / enemyDeath / 浮动文字）。
+  private autoPlaceTower(): void {
+    if (!this.grid || !this.economy) return;
+    const spot = this.findAutoTowerCell();
+    if (!spot) return;
+    this.selectedTowerType = 'arrow';
+    this.placeTowerAt(spot.col, spot.row);
+    this.selectedTowerType = null;
+    if (this.previewNode) this.previewNode.active = false;
+    this.autoTowerPlaced = true;
+  }
+
+  // 扫描所有可建格，选离路径（线段）最近的一座——它必然在塔射程内，能命中敌人。
+  private findAutoTowerCell(): { col: number; row: number } | null {
+    if (!this.grid || !this.path) return null;
+    const points = this.path.getPoints();
+    let best: { col: number; row: number } | null = null;
+    let bestDist = Infinity;
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        if (!this.grid.canPlace(col, row)) continue;
+        const cx = col * TILE_SIZE + TILE_SIZE / 2;
+        const cy = row * TILE_SIZE + HUD_HEIGHT + TILE_SIZE / 2;
+        let minD = Infinity;
+        for (let i = 0; i < points.length - 1; i++) {
+          const d = distToSegment(cx, cy, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+          if (d < minD) minD = d;
+        }
+        if (minD < bestDist) {
+          bestDist = minD;
+          best = { col, row };
+        }
+      }
+    }
+    return best;
   }
 
   private getTowerAt(x: number, y: number): Tower | null {
@@ -314,7 +368,7 @@ export class GameScene extends Component implements IGameScene {
   onWaveComplete(): void {
     this.waveSurvived = this.waveManager ? this.waveManager.currentWave : 0;
     if (this.economy && this.waveManager) {
-      const bonus = this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase;
+      const bonus = ECONOMY_CONFIG.waveBonusBase + (this.waveManager.currentWave - 1) * ECONOMY_CONFIG.waveBonusPerWave;
       this.economy.earn(bonus);
       this.audio?.play('waveComplete');
     }
@@ -354,9 +408,21 @@ export class GameScene extends Component implements IGameScene {
     const dtSec = dt;
 
     if (this.state === 'prepare') {
+      // late-bind：允许部署脚本在运行时（automator evaluate）打开 autoplay，即便晚于 onLoad。
+      if (!this.autoPlayEnabled && (globalThis as unknown as { __XXL_AUTOPLAY__?: boolean }).__XXL_AUTOPLAY__ === true) {
+        this.autoPlayEnabled = true;
+      }
+      if (this.autoPlayEnabled && !this.autoTowerPlaced) {
+        this.autoPlaceTower();
+      }
       this.prepareTimer -= dt * 1000;
       if (this.prepareTimer <= 0) {
-        this.startFightingPhase();
+        if (this.autoPlayEnabled) {
+          // (a) 自动触发 wave-start（等价于 Start Wave 按钮逻辑）
+          this.onStartWave();
+        } else {
+          this.startFightingPhase();
+        }
       }
     }
 
@@ -559,4 +625,16 @@ export class GameScene extends Component implements IGameScene {
   getTowers(): Tower[] {
     return this.towers;
   }
+}
+
+// 点到线段的最短距离（autoplay 选格用）
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx;
+  const cy = ay + t * dy;
+  return Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
 }
