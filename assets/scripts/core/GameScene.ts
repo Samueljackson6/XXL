@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Graphics, EventTouch, Vec3, input, Input, Event, Color } from 'cc';
+import { _decorator, Component, Node, Graphics, EventTouch, Vec3, input, Input, Event, Color, UITransform } from 'cc';
 import { Grid } from '../systems/Grid';
 import { WaveManager } from '../systems/WaveManager';
 import { Economy } from '../systems/Economy';
@@ -6,6 +6,11 @@ import { Path } from '../entities/Path';
 import { Tower } from '../entities/Tower';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { Projectile, ProjectileConfig } from '../entities/Projectile';
+import { HUD } from '../ui/HUD';
+import { TowerSelectBar } from '../ui/TowerSelectBar';
+import { TowerInfoPanel } from '../ui/TowerInfoPanel';
+import { AudioManager } from '../audio/AudioManager';
+import { FloatingText } from '../fx/FloatingText';
 import {
   GAME_WIDTH, GAME_HEIGHT, HUD_HEIGHT, TILE_SIZE, GRID_COLS, GRID_ROWS,
   TOWER_TYPES, ECONOMY_CONFIG, WAVE_CONFIG, DEPTH, TowerType,
@@ -30,6 +35,12 @@ export class GameScene extends Component implements IGameScene {
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private selectedTowerType: TowerType | null = null;
+
+  private hud: HUD | null = null;
+  private towerSelectBar: TowerSelectBar | null = null;
+  private towerInfoPanel: TowerInfoPanel | null = null;
+  private audio: AudioManager | null = null;
+  private uiNode: Node | null = null;
 
   private gridNode: Node | null = null;
   private pathNode: Node | null = null;
@@ -70,17 +81,41 @@ export class GameScene extends Component implements IGameScene {
   }
 
   private setupTowerSelect(): void {
-    // 迁移脚手架尚未完成：在此挂载 TowerSelectBar UI 并绑定 onTowerSelect 回调。
-    // 暂留空实现，避免 onLoad 调用未定义方法导致启动崩溃。
+    this.uiNode = new Node('ui');
+    this.uiNode.setPosition(0, 0, DEPTH.UI);
+    this.node.addChild(this.uiNode);
+
+    const hudNode = new Node('hud');
+    this.uiNode.addChild(hudNode);
+    this.hud = hudNode.addComponent(HUD);
+
+    const barNode = new Node('towerSelectBar');
+    this.uiNode.addChild(barNode);
+    this.towerSelectBar = barNode.addComponent(TowerSelectBar);
+    this.towerSelectBar.init(this);
+    this.towerSelectBar.onSelect = (t) => this.onTowerSelect(t);
+    this.towerSelectBar.onStartWave = () => this.onStartWave();
+
+    const infoNode = new Node('towerInfoPanel');
+    this.uiNode.addChild(infoNode);
+    this.towerInfoPanel = infoNode.addComponent(TowerInfoPanel);
+    this.towerInfoPanel.init();
+    this.towerInfoPanel.onUpgrade = () => this.upgradeSelectedTower();
+    this.towerInfoPanel.onSell = () => this.sellSelectedTower();
+
+    this.audio = new AudioManager();
   }
 
   private startPreparePhase(): void {
     this.state = 'prepare';
+    this.towerSelectBar?.updateState(this.state);
     this.prepareTimer = WAVE_CONFIG.prepareTime * 1000;
   }
 
   private startFightingPhase(): void {
     this.state = 'fighting';
+    this.towerSelectBar?.updateState(this.state);
+    this.audio?.play('waveStart');
     if (this.waveManager) {
       this.waveManager.startNextWave();
     }
@@ -201,6 +236,7 @@ export class GameScene extends Component implements IGameScene {
       if (this.selectedTower === clickedTower) {
         clickedTower.showRange(false);
         this.selectedTower = null;
+        this.towerInfoPanel?.hide();
         return;
       }
       if (this.selectedTower) {
@@ -208,6 +244,7 @@ export class GameScene extends Component implements IGameScene {
       }
       this.selectedTower = clickedTower;
       this.selectedTower.showRange(true);
+      this.towerInfoPanel?.show(pos.x, pos.y, clickedTower.towerType, clickedTower.level, clickedTower.damage, clickedTower.range);
       this.selectedTowerType = null;
       if (this.previewNode) this.previewNode.active = false;
       return;
@@ -216,6 +253,7 @@ export class GameScene extends Component implements IGameScene {
     if (this.selectedTower) {
       this.selectedTower.showRange(false);
       this.selectedTower = null;
+      this.towerInfoPanel?.hide();
     }
 
     if (this.state !== 'prepare' || !this.selectedTowerType) return;
@@ -238,6 +276,9 @@ export class GameScene extends Component implements IGameScene {
     tower.init(this.selectedTowerType, towerX, towerY);
     this.entityNode!.addChild(towerNode);
     this.towers.push(tower);
+
+    this.audio?.play('towerPlace');
+    this.spawnFloatingText(towerX, towerY, `+${config.cost}`, '#4fc3f7');
   }
 
   private getTowerAt(x: number, y: number): Tower | null {
@@ -275,12 +316,15 @@ export class GameScene extends Component implements IGameScene {
     if (this.economy && this.waveManager) {
       const bonus = this.waveManager.currentWave * ECONOMY_CONFIG.waveBonusPerWave + ECONOMY_CONFIG.waveBonusBase;
       this.economy.earn(bonus);
+      this.audio?.play('waveComplete');
     }
     if (this.waveManager && this.waveManager.currentWave >= this.waveManager.totalWaves) {
       this.state = 'victory';
+      this.towerSelectBar?.updateState(this.state);
       setTimeout(() => this.endGame(), 1000);
     } else {
       this.state = 'intermission';
+      this.towerSelectBar?.updateState(this.state);
       setTimeout(() => this.startPreparePhase(), WAVE_CONFIG.intermissionTime * 1000);
     }
   }
@@ -300,6 +344,7 @@ export class GameScene extends Component implements IGameScene {
   private endGame(): void {
     if (this.gameOver) return;
     this.gameOver = true;
+    this.audio?.play('gameOver');
     // Transition to game over scene or show overlay
   }
 
@@ -407,6 +452,9 @@ export class GameScene extends Component implements IGameScene {
                 const reward = this.economy.killReward(enemy.reward, this.waveManager.currentWave);
                 this.economy.earn(reward);
                 this.totalKills++;
+                this.audio?.play('enemyDeath');
+                const ePos = enemy.node.getPosition();
+                this.spawnFloatingText(ePos.x, ePos.y, `+${reward}`);
               }
             }
           }
@@ -418,6 +466,9 @@ export class GameScene extends Component implements IGameScene {
               const reward = this.economy.killReward(targetEnemy.reward, this.waveManager.currentWave);
               this.economy.earn(reward);
               this.totalKills++;
+              this.audio?.play('enemyDeath');
+              const ePos = targetEnemy.node.getPosition();
+              this.spawnFloatingText(ePos.x, ePos.y, `+${reward}`);
             }
             if (proj.slowEffect) {
               targetEnemy.applySlow(proj.slowEffect.duration, proj.slowEffect.factor);
@@ -429,6 +480,12 @@ export class GameScene extends Component implements IGameScene {
         this.projectiles.splice(i, 1);
       }
     }
+
+    if (this.economy && this.waveManager) {
+      this.hud?.update(this.economy.gold, this.economy.lives, this.waveManager.currentWave, this.waveManager.totalWaves);
+      this.towerSelectBar?.updateAffordability(this.economy);
+      if (this.state === 'prepare') this.towerSelectBar?.updateTimer(this.prepareTimer);
+    }
   }
 
   // Tower select bar callbacks
@@ -439,6 +496,44 @@ export class GameScene extends Component implements IGameScene {
       this.selectedTower = null;
     }
     this.selectedTowerType = this.selectedTowerType === type ? null : type;
+    this.towerSelectBar?.setSelectedType(this.selectedTowerType);
+  }
+
+  private upgradeSelectedTower(): void {
+    if (!this.selectedTower || !this.economy) return;
+    const cost = this.selectedTower.getUpgradeCost();
+    if (!this.economy.canAfford(cost)) {
+      const p = this.selectedTower.node.getPosition();
+      this.spawnFloatingText(p.x, p.y, 'No gold', '#ff5252');
+      return;
+    }
+    this.economy.spend(cost);
+    this.selectedTower.upgrade();
+    this.audio?.play('towerUpgrade');
+    const p = this.selectedTower.node.getPosition();
+    this.towerInfoPanel?.show(p.x, p.y, this.selectedTower.towerType, this.selectedTower.level, this.selectedTower.damage, this.selectedTower.range);
+    this.spawnFloatingText(p.x, p.y, `-${cost}`, '#ff5252');
+  }
+
+  private sellSelectedTower(): void {
+    if (!this.selectedTower || !this.economy) return;
+    const refund = this.selectedTower.getSellValue();
+    this.economy.earn(refund);
+    const idx = this.towers.indexOf(this.selectedTower);
+    if (idx >= 0) this.towers.splice(idx, 1);
+    this.selectedTower.showRange(false);
+    this.selectedTower.node.destroy();
+    this.selectedTower = null;
+    this.towerInfoPanel?.hide();
+    this.audio?.play('towerSell');
+  }
+
+  private spawnFloatingText(x: number, y: number, message: string, color: string = '#ffd700'): void {
+    const ftNode = new Node('floatingText');
+    ftNode.addComponent(UITransform);
+    const ft = ftNode.addComponent(FloatingText);
+    this.uiNode?.addChild(ftNode);
+    ft.init(x, y, message, color);
   }
 
   getSelectedTowerType(): TowerType | null {
