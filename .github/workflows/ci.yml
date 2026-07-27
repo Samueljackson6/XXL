@@ -1,0 +1,57 @@
+name: CI
+
+# XXL 塔防 — 首包体积门禁流水线
+#
+# 触发：push 到 main，以及对 main 的 PR。
+#
+# 本工作流只覆盖「构建 + 首包体积门禁」这一段，刻意不包含 deploy/控制台采集步骤——
+# 后者需要 Windows + 微信开发者工具(WeChat DevTools) GUI，无法在普通远程 runner 上运行，
+# 由本地 `pnpm ci:full` 负责（见 scripts/ci-full.mjs）。
+#
+# Runner 说明：
+#   构建步骤(build:cocos)依赖 Cocos Creator 3.8.8 的 CocosCreator.exe（Windows 专有，
+#   默认路径 `G:/Game tools/CocosCreator/CocosCreator.exe`）。因此本工作流运行在
+#   windows-latest。若使用 GitHub 托管 runner，需先安装 Cocos Creator（或改用装有 Cocos 的
+#   自托管 Windows runner），可通过环境变量 COCOS_CREATOR 覆盖默认路径。
+#   size:gate 本身只需 Node + 构建产物，无需 DevTools。
+#
+# CI=1 会让 build-cocos.mjs 清空 library/ 后重新打包，确保引擎裁剪(engine.json 功能裁剪)
+# 真正生效，从而让首包体积门禁有意义（否则可能吃到陈旧全量引擎包）。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-gate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build WeChat mini-game (Cocos)
+        # CI=1 → build-cocos.mjs 清空 library/ 重新打包，防首包回弹到 3.47MB+。
+        # COCOS_CREATOR 可覆盖默认 Cocos 路径（自托管 runner 上指向已安装实例）。
+        env:
+          CI: "1"
+          COCOS_CREATOR: ${{ vars.COCOS_CREATOR }}
+        run: pnpm build:cocos
+
+      - name: First-package size gate
+        # 断言首包 < 2.5MB（硬门禁）/ < 2.0MB（告警），> 4MB 硬上限兜底。
+        # 任一非 0 出口码都会令本步骤失败，从而阻断合并（门禁生效）。
+        run: pnpm size:gate

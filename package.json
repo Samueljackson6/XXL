@@ -17,6 +17,7 @@
     "docs:kb": "node scripts/fetch-wechat-docs.js",
     "deploy": "node scripts/deploy-wechat.mjs",
     "ci:full": "node scripts/ci-full.mjs",
+    "size:gate": "node scripts/check-bundle-size.mjs",
     "verify": "vitest run && tsc --noEmit",
     "clean": "node scripts/clean-build.mjs"
   },

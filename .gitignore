@@ -39,3 +39,13 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# WeChat credentials (NEVER commit)
+.wechat-config.json
+
+# Cocos Creator / WeChat build artifacts (regenerated on every build; excluded from VCS)
+library/
+build/
+temp/
+Build/
+dist/
