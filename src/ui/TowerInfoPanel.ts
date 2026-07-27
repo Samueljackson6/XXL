@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { TOWER_TYPES, TILE_SIZE } from '../utils/config';
+import { TOWER_TYPES, TILE_SIZE, DEPTH } from '../utils/config';
 import type { TowerType } from '../entities/Tower';
 
 export class TowerInfoPanel {
@@ -48,7 +48,7 @@ export class TowerInfoPanel {
 
   private create(): void {
     this.container = this.scene.add.container(0, 0);
-    this.container.setDepth(100);
+    this.container.setDepth(DEPTH.PANEL);
 
     const panelX = this.tower!.x + TILE_SIZE / 2 + 20;
     const panelY = this.tower!.y - this.panelHeight / 2;

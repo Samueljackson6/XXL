@@ -1,3 +1,4 @@
+import './utils/mp-browser-stubs';
 import * as Phaser from 'phaser';
 import BootScene from './scenes/BootScene';
 import MenuScene from './scenes/MenuScene';
@@ -23,6 +24,7 @@ if (!isWx || !(globalThis as Record<string, unknown>).__phaserGame) {
 
   const game = new Phaser.Game(config);
   (globalThis as Record<string, unknown>).__game = game;
+  console.log('[GAME] Phaser started, version:', Phaser.VERSION, 'size:', config.width, 'x', config.height);
 
   if (!isWx) {
     game.events.once('ready', () => {
@@ -34,3 +36,4 @@ if (!isWx || !(globalThis as Record<string, unknown>).__phaserGame) {
     });
   }
 }
+// force rebuild 2026年07月22日 13:14:18

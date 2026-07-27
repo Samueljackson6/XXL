@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { DEPTH } from '../utils/config';
 
 export class FloatingText {
   private text: Phaser.GameObjects.Text;
@@ -27,7 +28,7 @@ export class FloatingText {
         strokeThickness,
       })
       .setOrigin(0.5, 0.5)
-      .setDepth(90)
+      .setDepth(DEPTH.FLOATING_TEXT)
       .setScale(size === 'large' ? 0.3 : 1);
 
     if (size === 'large') {

@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TOWER_TYPES } from '../utils/config';
+import { GAME_WIDTH, GAME_HEIGHT, TOWER_TYPES, DEPTH } from '../utils/config';
 import { type TowerType } from '../entities/Tower';
 import { WAVE_STATE } from '../systems/CombatState';
 import type { WaveState } from '../systems/CombatState';
@@ -32,6 +32,7 @@ export class TowerSelectBar {
 
   private create(): void {
     this.container = this.scene.add.container(0, GAME_HEIGHT - 60);
+    this.container.setDepth(DEPTH.UI);
 
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x000000, 0.7);

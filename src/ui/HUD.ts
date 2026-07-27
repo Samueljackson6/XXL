@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, HUD_HEIGHT } from '../utils/config';
+import { GAME_WIDTH, HUD_HEIGHT, DEPTH } from '../utils/config';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -15,6 +15,7 @@ export class HUD {
 
   private create(): void {
     this.container = this.scene.add.container(0, 0);
+    this.container.setDepth(DEPTH.UI);
 
     const panel = this.scene.add.graphics();
     panel.fillStyle(0x000000, 0.8);

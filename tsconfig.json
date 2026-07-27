@@ -1,20 +1,16 @@
 {
   "compilerOptions": {
-    "target": "es2023",
-    "module": "esnext",
-    "lib": ["ES2023", "DOM"],
-    "types": ["vite/client"],
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
+    "target": "ES2020",
+    "module": "ES2020",
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true
+    "experimentalDecorators": true,
+    "noEmitHelpers": true,
+    "noEmitOnError": true,
+    "removeComments": true,
+    "sourceMap": false,
+    "lib": ["ES2020"],
+    "types": ["@cocos/creator-types"]
   },
-  "include": ["src"]
+  "include": ["assets/**/*.ts"],
+  "exclude": ["node_modules"]
 }

@@ -1,4 +1,4 @@
-import { PATH_POINTS, TILE_SIZE } from '../utils/config';
+import { PATH_POINTS, TILE_SIZE, HUD_HEIGHT } from '../utils/config';
 
 export class Path {
   private points: { x: number; y: number }[];
@@ -6,7 +6,7 @@ export class Path {
   constructor() {
     this.points = PATH_POINTS.map((p) => ({
       x: p.x * TILE_SIZE + TILE_SIZE / 2,
-      y: p.y * TILE_SIZE + TILE_SIZE / 2,
+      y: p.y * TILE_SIZE + HUD_HEIGHT + TILE_SIZE / 2,
     }));
   }
 
