@@ -236,10 +236,56 @@ function buildWechatConfig(appid, buildPath) {
       // 注：物理/Spine 等未使用模块的彻底剔除需走「项目设置 → 功能裁剪」(engine.json features)
       // + 清空 library 缓存重新构建；includeModules 设为 "off" 在本项目未生效（引擎被缓存且
       // 该字段仅强制包含而非排除），故保持 inherit，作为后续 <2MB 目标的优化项。
+      // 引擎模块裁剪（首包优化）：通过「功能裁剪」(settings/v2/packages/engine.json)
+      // 的 cache 把未使用模块标记为 _value:false，同时在此显式 'off' 双保险。
+      // 仅保留 2D 塔防真正需要的模块：base / gfx-webgl / 2d / ui / tween / graphics /
+      // mask / rich-text / ui-skew / affine-transform / sorting-2d / intersection-2d /
+      // profiler / custom-pipeline(+builtin-scripts)。其余全部裁剪。
+      // 注：物理/Spine 等为「分组」，其真实引擎特性名为子项（physics-framework /
+      // physics-ammo / spine-3.8 等），这里两种命名都列上以兼容构建选项解析。
       includeModules: {
-        physics: 'inherit-project-setting',
-        'physics-2d': 'inherit-project-setting',
         'gfx-webgl2': 'off',
+        'gfx-webgpu': 'off',
+        '3d': 'off',
+        'animation': 'off',
+        'skeletal-animation': 'off',
+        'particle': 'off',
+        'particle-2d': 'off',
+        'physics': 'off',
+        'physics-framework': 'off',
+        'physics-cannon': 'off',
+        'physics-physx': 'off',
+        'physics-ammo': 'off',
+        'physics-builtin': 'off',
+        'physics-2d': 'off',
+        'physics-2d-framework': 'off',
+        'physics-2d-box2d': 'off',
+        'physics-2d-builtin': 'off',
+        'physics-2d-box2d-wasm': 'off',
+        'physics-2d-box2d-jsb': 'off',
+        'primitive': 'off',
+        'occlusion-query': 'off',
+        'geometry-renderer': 'off',
+        'debug-renderer': 'off',
+        'audio': 'off',
+        'video': 'off',
+        'xr': 'off',
+        'light-probe': 'off',
+        'terrain': 'off',
+        'webview': 'off',
+        'tiled-map': 'off',
+        'vendor-google': 'off',
+        'spine': 'off',
+        'spine-3.8': 'off',
+        'spine-4.2': 'off',
+        'dragon-bones': 'off',
+        'marionette': 'off',
+        'procedural-animation': 'off',
+        'custom-pipeline-post-process': 'off',
+        'legacy-pipeline': 'off',
+        'websocket': 'off',
+        'websocket-server': 'off',
+        'meshopt': 'off',
       },
     },
     nativeCodeBundleMode: 'wasm',
